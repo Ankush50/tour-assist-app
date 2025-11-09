@@ -13,10 +13,10 @@ node_modules/
 .pnp.js
 
 # Build outputs
-dist/
-dist-ssr/
-build/
-*.local
+# dist/
+# dist-ssr/
+# build/
+# *.local
 
 # Environment variables
 .env

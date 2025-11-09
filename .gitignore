@@ -31,7 +31,7 @@ tour-assist-backend/*.log
 
 # Frontend (Node.js)
 tour-assist-frontend/node_modules/
-tour-assist-frontend/dist/
+# tour-assist-frontend/dist/
 tour-assist-frontend/dist-ssr/
 tour-assist-frontend/.npm
 tour-assist-frontend/npm-debug.log*
