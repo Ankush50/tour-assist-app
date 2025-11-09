@@ -23,8 +23,15 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173", # Default for Vite
+    "http://127.0.0.1:5173", # Alternative localhost format
 ]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins=origins, 
+    allow_methods=["*"], 
+    allow_headers=["*"],
+    allow_credentials=True
+)
 
 @app.get("/")
 def read_root():
@@ -65,6 +72,10 @@ async def get_places(
         place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
         place_dict["distance"] = distance / 1000  
         
+        # Convert non_veg to nonVeg for frontend compatibility
+        if "non_veg" in place_dict:
+            place_dict["nonVeg"] = place_dict.pop("non_veg")
+        
         point_geom = db.scalar(func.ST_AsText(place.location))
         point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
         
@@ -78,4 +89,5 @@ async def get_places(
     return {"places": places_list}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # Use 0.0.0.0 to accept connections from all interfaces (including localhost)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

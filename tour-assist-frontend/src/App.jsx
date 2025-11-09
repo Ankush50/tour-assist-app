@@ -102,15 +102,33 @@ async function geocodeDestination(destination) {
 async function fetchPlacesNearCoords(lat, lon) {
   if (!lat || !lon) return [];
   
-  const API_URL = `http://127.0.0.1:8000/api/places?lat=${lat}&lon=${lon}`;
+  // Use localhost instead of 127.0.0.1 to avoid browser blocking issues
+  const API_URL = `http://localhost:8000/api/places?lat=${lat}&lon=${lon}`;
   
   try {
     const response = await fetch(API_URL);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
+    
+    // Map non_veg to nonVeg for frontend compatibility
+    if (data.places && Array.isArray(data.places)) {
+      return data.places.map(place => ({
+        ...place,
+        nonVeg: place.non_veg !== undefined ? place.non_veg : place.nonVeg
+      }));
+    }
+    
     return data.places || [];
   } catch (error) {
     console.error("Error fetching places:", error);
+    
+    // Check if it's a network error (backend not running)
+    if (error.message.includes('Failed to fetch') || error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
+      console.error("Backend server might not be running or request was blocked. Make sure the backend is running on http://localhost:8000");
+    }
+    
     return [];
   }
 }
@@ -303,27 +321,38 @@ function App() {
   // --- **** UPDATED SEARCH HANDLER **** ---
   const handleSearch = async (e) => {
     e.preventDefault();
+    if (!destination.trim()) {
+      setMessage('Please enter a destination to search.');
+      return;
+    }
+    
     setLoading(true);
     setMessage('');
     setAllPlaces([]);
 
-    // Step 1: Geocode the destination text
-    const coords = await geocodeDestination(destination);
+    try {
+      // Step 1: Geocode the destination text
+      const coords = await geocodeDestination(destination);
 
-    if (!coords) {
-      setMessage(`Could not find coordinates for "${destination}". Please try a different location.`);
+      if (!coords) {
+        setMessage(`Could not find coordinates for "${destination}". Please try a different location.`);
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Fetch places using the coordinates
+      const places = await fetchPlacesNearCoords(coords.lat, coords.lon);
+      setAllPlaces(places);
+
+      if (places.length === 0) {
+        setMessage(`No results found near "${destination}". Make sure your backend server is running on http://localhost:8000 and the database has data.`);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setMessage(`Error searching for "${destination}". Please check if the backend server is running.`);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Step 2: Fetch places using the coordinates
-    const places = await fetchPlacesNearCoords(coords.lat, coords.lon);
-    setAllPlaces(places);
-
-    if (places.length === 0) {
-      setMessage(`No results found near "${destination}".`);
-    }
-    setLoading(false);
   };
   // --- ********************************* ---
 
