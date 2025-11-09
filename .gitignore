@@ -1,0 +1,50 @@
+# Root level .gitignore for TourAssit project
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Backend (Python)
+tour-assist-backend/__pycache__/
+tour-assist-backend/*.pyc
+tour-assist-backend/.env
+tour-assist-backend/venv/
+tour-assist-backend/env/
+tour-assist-backend/*.db
+tour-assist-backend/*.sqlite
+tour-assist-backend/*.log
+
+# Frontend (Node.js)
+tour-assist-frontend/node_modules/
+tour-assist-frontend/dist/
+tour-assist-frontend/dist-ssr/
+tour-assist-frontend/.npm
+tour-assist-frontend/npm-debug.log*
+tour-assist-frontend/yarn-debug.log*
+tour-assist-frontend/yarn-error.log*
+tour-assist-frontend/pnpm-debug.log*
+tour-assist-frontend/.vite/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
