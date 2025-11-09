@@ -11,6 +11,7 @@
 
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 class Settings(BaseSettings):
     # This tells Pydantic to load variables from a .env file
@@ -18,7 +19,14 @@ class Settings(BaseSettings):
 
     # These variables will be loaded from your .env file locally,
     # or from Render's "Environment" section when deployed.
-    DATABASE_URL: str
-    FRONTEND_URL: str
+    # Default values for local development (will be overridden by env vars)
+    DATABASE_URL: str = Field(
+        default="postgresql+psycopg://myuser:8218@localhost/tour",
+        description="PostgreSQL database connection URL"
+    )
+    FRONTEND_URL: str = Field(
+        default="http://localhost:5173",
+        description="Frontend application URL for CORS"
+    )
 
 settings = Settings()
