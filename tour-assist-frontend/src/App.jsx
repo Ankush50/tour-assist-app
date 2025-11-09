@@ -97,13 +97,35 @@ async function geocodeDestination(destination) {
   }
 }
 
+// --- API Configuration ---
+// Use environment variable, or default to Render URL for production, localhost for development
+const getApiBaseUrl = () => {
+  // Check if VITE_API_URL is explicitly set
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In production (when deployed), use Render URL
+  // In development (localhost), use localhost:8000
+  if (import.meta.env.MODE === 'production' || window.location.hostname !== 'localhost') {
+    return 'https://tour-assist-app.onrender.com';
+  }
+  
+  // Default to localhost for local development
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Log the API URL being used (for debugging)
+console.log("API Base URL:", API_BASE_URL);
+
 // --- **** UPDATED FUNCTION **** ---
 // Renamed to 'fetchPlacesNearCoords' and now takes lat/lon as arguments.
 async function fetchPlacesNearCoords(lat, lon) {
   if (!lat || !lon) return [];
   
-  // Use localhost instead of 127.0.0.1 to avoid browser blocking issues
-  const API_URL = `http://localhost:8000/api/places?lat=${lat}&lon=${lon}`;
+  const API_URL = `${API_BASE_URL}/api/places?lat=${lat}&lon=${lon}`;
   
   try {
     const response = await fetch(API_URL);
@@ -123,10 +145,11 @@ async function fetchPlacesNearCoords(lat, lon) {
     return data.places || [];
   } catch (error) {
     console.error("Error fetching places:", error);
+    console.error("API URL attempted:", API_URL);
     
     // Check if it's a network error (backend not running)
     if (error.message.includes('Failed to fetch') || error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
-      console.error("Backend server might not be running or request was blocked. Make sure the backend is running on http://localhost:8000");
+      console.error(`Backend server might not be running or request was blocked. Trying to connect to: ${API_BASE_URL}`);
     }
     
     return [];
@@ -345,7 +368,7 @@ function App() {
       setAllPlaces(places);
 
       if (places.length === 0) {
-        setMessage(`No results found near "${destination}". Make sure your backend server is running on http://localhost:8000 and the database has data.`);
+        setMessage(`No results found near "${destination}". The database might be empty or there are no places within 5km of this location.`);
       }
     } catch (error) {
       console.error("Search error:", error);

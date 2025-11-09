@@ -19,18 +19,28 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # --- CORS ---
+from settings import settings
+
+# Allow localhost for development and frontend URL from settings
 origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173", # Default for Vite
     "http://127.0.0.1:5173", # Alternative localhost format
 ]
+
+# Add frontend URL from settings if it's set
+if hasattr(settings, 'FRONTEND_URL') and settings.FRONTEND_URL:
+    origins.append(settings.FRONTEND_URL)
+
+# Allow all origins for now (you can restrict this in production)
+# Note: When allow_origins=["*"], allow_credentials must be False
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=origins, 
+    allow_origins=["*"],  # Allow all origins for now
     allow_methods=["*"], 
     allow_headers=["*"],
-    allow_credentials=True
+    allow_credentials=False  # Must be False when using allow_origins=["*"]
 )
 
 @app.get("/")
