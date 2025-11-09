@@ -11,6 +11,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.env
 
 # IDE
 .vscode/
