@@ -195,7 +195,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
           {/* Branding - Top Left */}
           <div className="flex items-center gap-2">
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-serif">
-              Tour-Assist 🧭
+              Voyage 🧭
             </h1>
           </div>
           
@@ -225,6 +225,23 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
     </nav>
   );
 };
+
+// --- Footer Component ---
+const Footer = () => (
+  <footer className="bg-surface border-t border-secondary mt-auto py-6">
+    <div className="max-w-7xl mx-auto px-4 text-center">
+      <p className="text-text-main font-serif text-lg font-bold mb-2">Voyage 🧭</p>
+      <div className="text-sm text-gray-500 space-y-2">
+        <p>&copy; {new Date().getFullYear()} Voyage. All rights reserved.</p>
+        <div className="flex justify-center gap-4">
+          <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+          <span>&bull;</span>
+          <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+);
 
 // --- Distance Calculation (Haversine Formula) ---
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -573,6 +590,9 @@ function App() {
           )}
         </div>
       </main>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
