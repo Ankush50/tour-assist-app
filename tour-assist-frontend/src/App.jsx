@@ -224,15 +224,15 @@ const PlaceCard = ({ place, userLocation }) => {
     return 'bg-accent';
   };
 
-  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLocation?.lat},${userLocation?.lon}&destination=${place.location?.lat},${place.location?.lon}`;
+  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location?.lat},${place.location?.lon}`;
 
   return (
     <a
-      href={userLocation && place.location ? googleMapsUrl : '#'}
+      href={place.location ? googleMapsUrl : '#'}
       target="_blank"
       rel="noopener noreferrer"
-      title={userLocation && place.location ? "Click to get directions" : "Enable location to get directions"}
-      className={`block ${!userLocation || !place.location ? 'cursor-not-allowed' : ''}`}
+      title={place.location ? "Click to get directions" : "Location not available"}
+      className={`block ${!place.location ? 'cursor-not-allowed' : ''}`}
     >
       <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
         <div className="relative">
@@ -271,7 +271,7 @@ const PlaceCard = ({ place, userLocation }) => {
               )}
             </div>
             {place.distance != null && (
-              <span>{place.distance.toFixed(1)} km away</span>
+              <span>{place.distance.toFixed(2)} km away</span>
             )}
           </div>
           <p className="text-sm text-gray-500 truncate" title={place.description}>
