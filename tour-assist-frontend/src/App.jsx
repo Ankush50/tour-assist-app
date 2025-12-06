@@ -27,6 +27,27 @@ const NonVegIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const HOTEL_IMAGES = [
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80",
+];
+
+const RESTAURANT_IMAGES = [
+  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1559339352-11d035aa65de?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=800&q=80",
+];
+
+const getFallbackImage = (type, name) => {
+  const images = type === 'Hotel' ? HOTEL_IMAGES : RESTAURANT_IMAGES;
+  // Simple hash function to deterministically pick an image based on name
+  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % images.length;
+  return images[index];
+};
+
 // --- Helper Functions ---
 function filterAndSortPlaces(places, filters) {
   let filtered = [...places];
@@ -267,9 +288,17 @@ const PlaceCard = ({ place, userLocation }) => {
         <div className="relative">
           <img
             className="aspect-[16/9] w-full object-cover"
-            src={place.image_url || 'https://placehold.co/400x225/f0f0f0/c2c2c2?text=Image+Not+Found'}
+            src={place.image_url || getFallbackImage(place.type, place.name)}
             alt={place.name}
-            onError={(e) => { e.target.src = 'https://placehold.co/400x225/f0f0f0/c2c2c2?text=Image+Not+Found'; }}
+            onError={(e) => {
+              // Prevent infinite loop if fallback also fails
+              const fallback = getFallbackImage(place.type, place.name);
+              if (e.target.src !== fallback) {
+                e.target.src = fallback;
+              } else {
+                 e.target.src = 'https://placehold.co/400x225/f0f0f0/c2c2c2?text=Image+Not+Found';
+              }
+            }}
           />
           {place.rating && (
             <div className={`absolute top-2 right-2 px-2 py-1 rounded-md text-white text-sm font-bold ${getRatingColor(place.rating)}`}>
@@ -309,8 +338,8 @@ const PlaceCard = ({ place, userLocation }) => {
               </span>
             )}
             {distanceFromUser !== null && (
-              <span className="flex items-center gap-1 text-primary font-medium">
-                 👤 {distanceFromUser.toFixed(2)} km from you
+              <span className="flex items-center gap-1 text-primary font-medium" title="Calculated from your browser's location">
+                 👤 {distanceFromUser.toFixed(2)} km from you (approx)
               </span>
             )}
           </div>
