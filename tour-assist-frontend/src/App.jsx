@@ -205,7 +205,25 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
   );
 };
 
-// --- Zomato-Style Card Component (No change) ---
+// --- Distance Calculation (Haversine Formula) ---
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+
+// --- Zomato-Style Card Component ---
 const PlaceCard = ({ place, userLocation }) => {
   const formatPrice = (price) => {
     if (!price) return null;
@@ -223,6 +241,17 @@ const PlaceCard = ({ place, userLocation }) => {
     if (rating >= 3.5) return 'bg-accent/80';
     return 'bg-accent';
   };
+
+  // Calculate distance from user if location is available
+  const distanceFromUser = useMemo(() => {
+    if (userLocation && place.location) {
+      return calculateDistance(
+        userLocation.lat, userLocation.lon,
+        place.location.lat, place.location.lon
+      );
+    }
+    return null;
+  }, [userLocation, place.location]);
 
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location?.lat},${place.location?.lon}`;
 
@@ -270,10 +299,22 @@ const PlaceCard = ({ place, userLocation }) => {
                 </div>
               )}
             </div>
-            {place.distance != null && (
-              <span>{place.distance.toFixed(2)} km away</span>
+          </div>
+          
+          {/* Distance Info */}
+          <div className="flex flex-col gap-0.5 mt-1 mb-2 text-xs text-gray-500">
+             {place.distance != null && (
+              <span className="flex items-center gap-1">
+                 📍 {place.distance.toFixed(2)} km from search
+              </span>
+            )}
+            {distanceFromUser !== null && (
+              <span className="flex items-center gap-1 text-primary font-medium">
+                 👤 {distanceFromUser.toFixed(2)} km from you
+              </span>
             )}
           </div>
+
           <p className="text-sm text-gray-500 truncate" title={place.description}>
             {place.description}
           </p>
