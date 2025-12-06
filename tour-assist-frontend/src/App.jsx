@@ -195,7 +195,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
           {/* Branding - Top Left */}
           <div className="flex items-center gap-2">
             <h1 className="text-2xl md:text-3xl font-bold text-primary font-serif">
-              Voyage 🧭
+              Odyssey 🧭
             </h1>
           </div>
           
@@ -228,22 +228,25 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
 
 // --- Footer Component ---
 const Footer = () => (
-  <footer className="bg-surface border-t border-secondary mt-auto py-6">
+  <footer className="bg-text-main text-surface border-t border-primary/20 mt-auto py-4">
     <div className="max-w-7xl mx-auto px-4 text-center">
-      <p className="text-text-main font-serif text-lg font-bold mb-2">Voyage 🧭</p>
-      <div className="text-sm text-gray-500 space-y-2">
-        <p>&copy; {new Date().getFullYear()} Voyage. All rights reserved.</p>
-        <div className="flex justify-center gap-4">
+      <div className="mb-2">
+        <span className="text-xl font-serif font-bold text-accent">Odyssey 🧭</span>
+        <p className="text-xs text-gray-400">Your personal travel companion</p>
+      </div>
+      <div className="text-xs text-gray-300 space-y-2">
+        <div className="flex justify-center gap-4 font-medium">
           <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-          <span>&bull;</span>
           <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+          <a href="#" className="hover:text-primary transition-colors">Contact</a>
         </div>
+        <p className="opacity-60">&copy; {new Date().getFullYear()} Odyssey. All rights reserved.</p>
       </div>
     </div>
   </footer>
 );
 
-// --- Distance Calculation (Haversine Formula) ---
+
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the earth in km
   const dLat = deg2rad(lat2 - lat1);
@@ -482,7 +485,7 @@ function App() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-background font-sans text-text-main">
+    <div className="min-h-screen bg-background font-sans text-text-main flex flex-col">
       {/* Navbar */}
       <Navbar 
         destination={destination}
@@ -491,7 +494,7 @@ function App() {
         loading={loading}
       />
       
-      <main className="max-w-6xl mx-auto p-4 md:p-8">
+      <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
         <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Category Filter */}
