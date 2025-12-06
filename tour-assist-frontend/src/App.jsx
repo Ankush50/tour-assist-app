@@ -15,15 +15,15 @@ const SearchIcon = ({ className = "w-5 h-5" }) => (
 
 const VegIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 20 20">
-    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="#0f8a4f" strokeWidth="1.5"/>
-    <circle cx="10" cy="10" r="4" fill="#0f8a4f"/>
+    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-600"/>
+    <circle cx="10" cy="10" r="4" fill="currentColor" className="text-green-600"/>
   </svg>
 );
 
 const NonVegIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 20 20">
-    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="#e43b4f" strokeWidth="1.5"/>
-    <circle cx="10" cy="10" r="4" fill="#e43b4f"/>
+    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-red-600"/>
+    <circle cx="10" cy="10" r="4" fill="currentColor" className="text-red-600"/>
   </svg>
 );
 
@@ -168,12 +168,12 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
   };
 
   return (
-    <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
+    <nav className="bg-surface shadow-sm border-b border-secondary sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-red-600">
+            <h1 className="text-2xl md:text-3xl font-bold text-primary font-serif">
               Tour-Assist 🧭
             </h1>
           </div>
@@ -187,12 +187,12 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
                 onChange={(e) => setDestination(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a tourist place (e.g., Connaught Place, Delhi)"
-                className="w-full px-6 py-3 pr-14 text-base text-gray-800 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                className="w-full px-6 py-3 pr-14 text-base text-text-main bg-surface border-2 border-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
                 required
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-red-500 hover:bg-red-600 text-white p-2.5 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-opacity-90 text-white p-2.5 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 <SearchIcon className="w-5 h-5" />
@@ -218,10 +218,10 @@ const PlaceCard = ({ place, userLocation }) => {
   };
 
   const getRatingColor = (rating) => {
-    if (rating >= 4.5) return 'bg-green-600';
-    if (rating >= 4.0) return 'bg-green-500';
-    if (rating >= 3.5) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (rating >= 4.5) return 'bg-primary';
+    if (rating >= 4.0) return 'bg-primary/80';
+    if (rating >= 3.5) return 'bg-accent/80';
+    return 'bg-accent';
   };
 
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLocation?.lat},${userLocation?.lon}&destination=${place.location?.lat},${place.location?.lon}`;
@@ -234,7 +234,7 @@ const PlaceCard = ({ place, userLocation }) => {
       title={userLocation && place.location ? "Click to get directions" : "Enable location to get directions"}
       className={`block ${!userLocation || !place.location ? 'cursor-not-allowed' : ''}`}
     >
-      <div className="bg-white rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+      <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
         <div className="relative">
           <img
             className="aspect-[16/9] w-full object-cover"
@@ -253,10 +253,10 @@ const PlaceCard = ({ place, userLocation }) => {
         </div>
         <div className="p-4">
           <div className="flex justify-between items-start mb-1">
-            <h3 className="text-lg font-bold text-gray-900 truncate" title={place.name}>
+            <h3 className="text-lg font-bold text-text-main truncate" title={place.name}>
               {place.name}
             </h3>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === 'Hotel' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === 'Hotel' ? 'bg-secondary text-text-main' : 'bg-primary/20 text-primary'}`}>
               {place.type}
             </span>
           </div>
@@ -368,7 +368,7 @@ function App() {
       setAllPlaces(places);
 
       if (places.length === 0) {
-        setMessage(`No results found near "${destination}". The database might be empty or there are no places within 5km of this location.`);
+        setMessage(`No results found near "${destination}". The database might be empty or there are no places within 1km of this location.`);
       }
     } catch (error) {
       console.error("Search error:", error);
@@ -395,7 +395,7 @@ function App() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-gray-100 font-inter">
+    <div className="min-h-screen bg-background font-sans text-text-main">
       {/* Navbar */}
       <Navbar 
         destination={destination}
@@ -405,7 +405,7 @@ function App() {
       />
       
       <main className="max-w-6xl mx-auto p-4 md:p-8">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Category Filter */}
             <fieldset className="lg:col-span-3">
@@ -418,7 +418,7 @@ function App() {
                       checked={filters.type === type} onChange={handleFilterChange}
                       className="peer sr-only"
                     />
-                    <span className="block px-4 py-2 rounded-xl border-2 border-gray-200 text-sm font-medium text-gray-700 transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-gray-300">
+                    <span className="block px-4 py-2 rounded-xl border-2 border-secondary text-sm font-medium text-text-main transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
                       {type}
                     </span>
                   </label>
@@ -437,7 +437,7 @@ function App() {
                       type="checkbox" name="veg" checked={filters.veg} onChange={handleFilterChange}
                       disabled={filters.type === 'Hotel'} className="peer sr-only"
                     />
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-medium transition-all peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 hover:border-gray-300">
+                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
                       <VegIcon className="w-4 h-4" />
                       Veg
                     </span>
@@ -447,7 +447,7 @@ function App() {
                       type="checkbox" name="nonVeg" checked={filters.nonVeg} onChange={handleFilterChange}
                       disabled={filters.type === 'Hotel'} className="peer sr-only"
                     />
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-medium transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:border-gray-300">
+                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent hover:border-accent/50">
                       <NonVegIcon className="w-4 h-4" />
                       Non-Veg
                     </span>
@@ -456,17 +456,19 @@ function App() {
                 
                 {/* Price Filter */}
                 <div className={`flex gap-3 border-l border-gray-200 pl-4 ${filters.type === 'Restaurant' ? 'opacity-40 pointer-events-none' : ''}`}>
-                  {[1, 2, 3].map(price => (
+                  {[1, 2, 3].map(price => {
+                    const priceLabels = { 1: 'Budget', 2: 'Standard', 3: 'Premium' };
+                    return (
                     <label key={price} className="relative cursor-pointer">
                       <input
                         type="checkbox" name="price" value={price} checked={filters.price[price]} onChange={handleFilterChange}
                         disabled={filters.type === 'Restaurant'} className="peer sr-only"
                       />
-                      <span className="block px-3 py-2 rounded-xl border-2 border-gray-200 text-sm font-medium transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:border-gray-300">
-                        {'$'.repeat(price)}
+                      <span className="block px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
+                        {priceLabels[price]}
                       </span>
                     </label>
-                  ))}
+                  );})}
                 </div>
               </div>
             </fieldset>
@@ -476,7 +478,7 @@ function App() {
               <label htmlFor="sort" className="text-sm font-semibold text-gray-700 block mb-3">Sort By</label>
               <select
                 id="sort" name="sort" value={filters.sort} onChange={handleFilterChange}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm font-medium text-gray-700 hover:border-gray-300 transition-all"
+                className="w-full px-4 py-2.5 border-2 border-secondary rounded-xl bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm font-medium text-text-main hover:border-primary/50 transition-all"
               >
                 <option value="nearest">📍 Nearest First</option>
                 <option value="rating">⭐ Highest Rated</option>

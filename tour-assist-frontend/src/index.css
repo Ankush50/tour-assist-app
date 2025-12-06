@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #6C63FF; /* Electric Indigo */
+  --color-secondary: #FF6584; /* Vibrant Coral */
+  --color-background: #F0F8FF; /* Alice Blue */
+  --color-surface: #FFFFFF; /* Pure White */
+  --color-text-main: #2D3748; /* Deep Navy */
+  --color-accent: #FFD93D; /* Sunny Yellow */
+
+  --font-sans: Inter, sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+
+/* Base styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}

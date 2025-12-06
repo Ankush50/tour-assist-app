@@ -58,7 +58,7 @@ async def get_places(
     """
     
     user_location_point = cast(from_shape(Point(lon, lat), srid=4326), Geography)
-    search_radius_meters = 5000
+    search_radius_meters = 1000
 
     query = (
         db.query(
