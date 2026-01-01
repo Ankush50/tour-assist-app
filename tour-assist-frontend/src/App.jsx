@@ -516,6 +516,36 @@ function App() {
   }, []); // Empty array means this runs once on load
   // --- END OF ADDED CODE ---
 
+  // --- ADDED: Fetch Default Places ---
+  useEffect(() => {
+    // Only fetch default places if no destination is set (initial load)
+    if (!destination) {
+      const fetchDefaultPlaces = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/places/all?limit=50`);
+          if (response.ok) {
+            const data = await response.json();
+            setAllPlaces(data.places || []);
+            if (data.places && data.places.length > 0) {
+               setMessage('Top places for you');
+            } else {
+               setMessage('No places found in database.');
+            }
+          }
+        } catch (error) {
+           console.error("Error fetching default places:", error);
+           setMessage("Could not load places. Please check connection.");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchDefaultPlaces();
+    }
+  }, []); // Run ONCE on mount
+  // --- END ADDED CODE ---
+
   // --- **** UPDATED SEARCH HANDLER **** ---
   // --- ADDED FOR SUGGESTIONS ---
   const [suggestions, setSuggestions] = useState([]);

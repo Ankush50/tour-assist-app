@@ -253,6 +253,38 @@ def get_search_suggestions(
     
     return {"suggestions": combined[:5]}
 
+@app.get("/api/places/all")
+def get_all_places(
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch all places (with limit) for default view.
+    """
+    places = db.query(models.Place).limit(limit).all()
+    
+    places_list = []
+    for place in places:
+        place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
+        
+        # Handle location
+        if place.location:
+            point_geom = db.scalar(func.ST_AsText(place.location))
+            point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
+            place_dict["location"] = {
+                "lon": float(point_coords[0]),
+                "lat": float(point_coords[1])
+            }
+        
+        # Handle veg/nonVeg mapping
+        if "non_veg" in place_dict:
+            place_dict["nonVeg"] = place_dict.pop("non_veg")
+            
+        places_list.append(place_dict)
+        
+    return {"places": places_list}
+
+
 if __name__ == "__main__":
     # Use 0.0.0.0 to accept connections from all interfaces (including localhost)
     uvicorn.run(app, host="0.0.0.0", port=8000)
