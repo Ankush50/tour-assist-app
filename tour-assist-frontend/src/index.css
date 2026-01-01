@@ -36,7 +36,10 @@
 @layer utilities {
   .animate-gradient-flow {
     background-size: 200% auto;
-    animation: gradient-flow 3s linear infinite;
+    animation: gradient-flow 1.5s linear infinite; /* Faster speed */
+  }
+  .animate-breathing {
+    animation: breathing 4s ease-in-out infinite;
   }
   .animate-bounce-delay-100 { animation-delay: 100ms; }
   .animate-bounce-delay-200 { animation-delay: 200ms; }
@@ -47,6 +50,11 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
 /* Base styles */

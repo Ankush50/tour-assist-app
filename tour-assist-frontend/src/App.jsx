@@ -231,12 +231,12 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
   );
 };
 
-const SearchingDots = () => (
+const SearchingDots = ({ className = "w-1.5 h-1.5" }) => (
     <div className="flex gap-1 items-center justify-center p-1">
-        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
-        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce animate-bounce-delay-100"></div>
-        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-bounce animate-bounce-delay-200"></div>
-        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce animate-bounce-delay-300"></div>
+        <div className={`${className} bg-blue-500 rounded-full animate-bounce`}></div>
+        <div className={`${className} bg-red-500 rounded-full animate-bounce animate-bounce-delay-100`}></div>
+        <div className={`${className} bg-yellow-500 rounded-full animate-bounce animate-bounce-delay-200`}></div>
+        <div className={`${className} bg-green-500 rounded-full animate-bounce animate-bounce-delay-300`}></div>
     </div>
 );
 
@@ -279,7 +279,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
           <div className="flex items-center gap-2 group cursor-pointer">
-            <h1 className="text-2xl md:text-3xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-flow">
+            <h1 className="text-2xl md:text-3xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-flow animate-breathing">
               Odyssey
             </h1>
             <span className="text-2xl md:text-3xl transition-transform duration-1000 ease-in-out group-hover:rotate-[360deg] group-hover:scale-110">
@@ -857,7 +857,11 @@ function App() {
         </div>
 
         <div>
-          {loading && <p className="text-center text-gray-600 text-lg">Searching...</p>}
+          {loading && (
+             <div className="flex justify-center items-center py-20">
+                <SearchingDots className="w-4 h-4" />
+             </div>
+          )}
           
           {message && !loading && <p className="text-center text-gray-600 text-lg">{message}</p>}
           
