@@ -298,11 +298,24 @@ function deg2rad(deg) {
 const PlaceCard = ({ place, userLocation }) => {
   const formatPrice = (price) => {
     if (!price) return null;
+    
+    // Normalize large price values (e.g. 1200) to 1-3 scale for dollar signs
+    let priceLevel = 1;
+    if (price > 1500) priceLevel = 3;
+    else if (price > 500) priceLevel = 2;
+    // If price is already 1-3 (legacy data), use it as is
+    if (price <= 3) priceLevel = price;
+
     return (
-      <span className="text-sm font-semibold text-gray-700">
-        {'$'.repeat(price)}
-        <span className="text-gray-400">{'$'.repeat(3 - price)}</span>
-      </span>
+      <div className="flex flex-col items-start">
+        <span className="text-xs font-bold text-primary">
+            ₹{price} {/* Show actual price */}
+        </span>
+        <span className="text-xs font-semibold text-gray-700 flex">
+          {'₹'.repeat(priceLevel)}
+          <span className="text-gray-400">{'₹'.repeat(3 - priceLevel)}</span>
+        </span>
+      </div>
     );
   };
 

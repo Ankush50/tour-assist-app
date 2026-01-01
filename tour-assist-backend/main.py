@@ -228,14 +228,24 @@ def get_search_suggestions(
     if not query:
         return {"suggestions": []}
         
-    # Optimisation: Only fetch names
-    all_names = [name for (name,) in db.query(models.Place.name).all()]
+    # Optimisation: Fetch names and addresses
+    results = db.query(models.Place.name, models.Place.address).all()
+    
+    all_strings = []
+    for name, address in results:
+        if name:
+            all_strings.append(name)
+        if address:
+            all_strings.append(address)
+    
+    # Remove duplicates
+    all_strings = list(set(all_strings))
     
     # Find matches
-    matches = difflib.get_close_matches(query, all_names, n=5, cutoff=0.5)
+    matches = difflib.get_close_matches(query, all_strings, n=5, cutoff=0.5)
     
-    # Also include starts_with matches that might be missed by difflib if too short
-    starts_with = [name for name in all_names if name.lower().startswith(query.lower())]
+    # Also include starts_with matches
+    starts_with = [s for s in all_strings if s.lower().startswith(query.lower())]
     
     # Combine and dedup
     combined = list(set(matches + starts_with))
