@@ -600,7 +600,7 @@ function App() {
             <fieldset className="lg:col-span-3">
               <legend className="text-sm font-semibold text-gray-700 mb-3">Category</legend>
               <div className="flex flex-wrap gap-3">
-                {['All', 'Hotels', 'Restaurants'].map(type => (
+                {['All', 'Hotel', 'Restaurant'].map(type => (
                   <label key={type} className="relative cursor-pointer">
                     <input
                       type="radio" name="type" value={type}
@@ -608,7 +608,7 @@ function App() {
                       className="peer sr-only"
                     />
                     <span className="block px-4 py-2 rounded-xl border-2 border-secondary text-sm font-medium text-text-main transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                      {type}
+                      {type === 'All' ? 'All' : type + 's'}
                     </span>
                   </label>
                 ))}
