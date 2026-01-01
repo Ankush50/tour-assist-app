@@ -279,7 +279,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
 
 // --- Footer Component ---
 const Footer = () => (
-  <footer className="bg-text-main text-surface border-t border-primary/20 mt-auto py-4">
+  <footer className="bg-text-main text-surface dark:bg-surface dark:text-text-main border-t border-primary/20 mt-auto py-4">
     <div className="max-w-7xl mx-auto px-4 text-center">
       <div className="mb-2">
         <span className="text-xl font-serif font-bold text-accent">Odyssey 🧭</span>
