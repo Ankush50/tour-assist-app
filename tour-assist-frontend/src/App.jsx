@@ -187,8 +187,27 @@ async function fetchPlacesNearCoords(lat, lon) {
 // --- ************************** ---
 
 
+// --- Suggestions Component ---
+const SuggestionsList = ({ suggestions, onSelect }) => {
+  if (!suggestions || suggestions.length === 0) return null;
+
+  return (
+    <ul className="absolute z-60 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+      {suggestions.map((item, index) => (
+        <li 
+          key={index}
+          onClick={() => onSelect(item)}
+          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 // --- Navbar Component ---
-const Navbar = ({ destination, setDestination, onSearch, loading }) => {
+const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect }) => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -208,9 +227,9 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
           </div>
           
           {/* Search Bar */}
-          <div className="flex-1 max-w-2xl">
-            <form onSubmit={onSearch} className="relative">
-              <input
+          <div className="flex-1 max-w-2xl relative">
+            <div className="relative">
+               <input
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -220,13 +239,16 @@ const Navbar = ({ destination, setDestination, onSearch, loading }) => {
                 required
               />
               <button
-                type="submit"
+                type="button"
+                onClick={onSearch}
                 className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-opacity-90 text-white p-2.5 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 <SearchIcon className="w-5 h-5" />
               </button>
-            </form>
+            </div>
+            {/* Suggestions Dropdown */}
+            <SuggestionsList suggestions={suggestions} onSelect={onSuggestionSelect} />
           </div>
         </div>
       </div>
@@ -440,41 +462,108 @@ function App() {
   // --- END OF ADDED CODE ---
 
   // --- **** UPDATED SEARCH HANDLER **** ---
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!destination.trim()) {
+  // --- ADDED FOR SUGGESTIONS ---
+  const [suggestions, setSuggestions] = useState([]);
+
+  // Debounce suggestions fetch
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!destination || destination.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/places/suggestions?query=${encodeURIComponent(destination)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSuggestions(data.suggestions || []);
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [destination]);
+
+  const handleSuggestionSelect = (suggestion) => {
+    setDestination(suggestion);
+    setSuggestions([]); // Clear suggestions
+    // Trigger search immediately with the suggestion
+    // We need to pass a fake event or handle it differently, 
+    // for simplicity, let's just set state and let user click or handle in effect
+    // But better to trigger search:
+    handleSearch(null, suggestion); 
+  };
+  // --- END ADDED CODE ---
+
+  // --- **** UPDATED SEARCH HANDLER **** ---
+  const handleSearch = async (e, overrideDestination) => {
+    if (e) e.preventDefault();
+    
+    // Use override if provided (from suggestion click), otherwise state
+    const searchTerm = overrideDestination || destination;
+
+    if (!searchTerm.trim()) {
       setMessage('Please enter a destination to search.');
       return;
     }
     
+    // Updates the input if we used override
+    if (overrideDestination) {
+        setDestination(overrideDestination);
+    }
+    setSuggestions([]); // Hide suggestions on search
+
     setLoading(true);
     setMessage('');
     setAllPlaces([]);
 
     try {
-      // Step 1: Geocode the destination text
-      const coords = await geocodeDestination(destination);
+      // Step 1: Search in Backend first (Fuzzy Search)
+      // This handles "exact production addresses" check first as requested
+      const searchResponse = await fetch(`${API_BASE_URL}/api/places/search?query=${encodeURIComponent(searchTerm)}`);
+      let backendPlaces = [];
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        backendPlaces = searchData.places || [];
+      }
+
+      if (backendPlaces.length > 0) {
+        setAllPlaces(backendPlaces);
+        setMessage(`Found ${backendPlaces.length} result(s) in our database.`);
+        setLoading(false);
+        return; // FOUND IN DB! Stop here.
+      }
+      
+      // Step 2: If NOT in DB, fallback to Geocoding (External Search)
+      console.log("Not found in DB, falling back to geocoding...");
+      const coords = await geocodeDestination(searchTerm);
 
       if (!coords) {
-        setMessage(`Could not find coordinates for "${destination}". Please try a different location.`);
+        setMessage(`Could not find coordinates for "${searchTerm}". Please try a different location.`);
         setLoading(false);
         return;
       }
 
-      // Step 2: Fetch places using the coordinates
+      // Step 3: Fetch places using the coordinates
       const places = await fetchPlacesNearCoords(coords.lat, coords.lon);
       setAllPlaces(places);
 
       if (places.length === 0) {
-        setMessage(`No results found near "${destination}". The database might be empty or there are no places within 1km of this location.`);
+        setMessage(`No results found near "${searchTerm}". The database might be empty or there are no places within 1km of this location.`);
       }
     } catch (error) {
       console.error("Search error:", error);
-      setMessage(`Error searching for "${destination}". Please check if the backend server is running.`);
+      setMessage(`Error searching for "${searchTerm}". Please check if the backend server is running.`);
     } finally {
       setLoading(false);
     }
   };
+  // --- ********************************* ---
   // --- ********************************* ---
 
   const handleFilterChange = (e) => {
@@ -500,6 +589,8 @@ function App() {
         setDestination={setDestination}
         onSearch={handleSearch}
         loading={loading}
+        suggestions={suggestions}
+        onSuggestionSelect={handleSuggestionSelect}
       />
       
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
