@@ -269,10 +269,13 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary font-serif">
-              Odyssey 🧭
+          <div className="flex items-center gap-2 group cursor-pointer">
+            <h1 className="text-2xl md:text-3xl font-bold font-serif transition-all duration-700 ease-in-out text-primary group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-accent group-hover:scale-105">
+              Odyssey
             </h1>
+            <span className="text-2xl md:text-3xl transition-transform duration-1000 ease-in-out group-hover:rotate-[360deg] group-hover:scale-110">
+              🧭
+            </span>
           </div>
           
           {/* Search Bar */}
@@ -674,6 +677,29 @@ function App() {
       }
 
       if (backendPlaces.length > 0) {
+        // --- Try to calculate distance from search term ---
+        try {
+           // We geocode the search term (e.g. "Delhi") to get a reference point
+           const searchCoords = await geocodeDestination(searchTerm);
+           if (searchCoords) {
+             backendPlaces = backendPlaces.map(p => {
+               if(p.location && p.location.lat && p.location.lon) {
+                 return { 
+                    ...p, 
+                    distance: calculateDistance(searchCoords.lat, searchCoords.lon, p.location.lat, p.location.lon) 
+                 };
+               }
+               return p;
+             });
+             // Sort by distance if they are close? 
+             // Optional: backendPlaces.sort((a,b) => (a.distance||0) - (b.distance||0));
+             // But let's keep relevance order from backend (Exact match first)
+           }
+        } catch(e) { 
+            console.warn("Could not geocode for distance:", e); 
+        }
+        // -------------------------------------------------
+
         setAllPlaces(backendPlaces);
         setMessage(`Found ${backendPlaces.length} result(s) in our database.`);
         setLoading(false);
