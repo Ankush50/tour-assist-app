@@ -231,6 +231,15 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
   );
 };
 
+const SearchingDots = () => (
+    <div className="flex gap-1 items-center justify-center p-1">
+        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce animate-bounce-delay-100"></div>
+        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-bounce animate-bounce-delay-200"></div>
+        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-bounce animate-bounce-delay-300"></div>
+    </div>
+);
+
 // --- Navbar Component ---
 const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect, theme, toggleTheme }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -270,7 +279,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
           <div className="flex items-center gap-2 group cursor-pointer">
-            <h1 className="text-2xl md:text-3xl font-bold font-serif transition-all duration-700 ease-in-out text-primary group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary group-hover:via-secondary group-hover:to-accent group-hover:scale-105">
+            <h1 className="text-2xl md:text-3xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-flow">
               Odyssey
             </h1>
             <span className="text-2xl md:text-3xl transition-transform duration-1000 ease-in-out group-hover:rotate-[360deg] group-hover:scale-110">
@@ -293,10 +302,10 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
               <button
                 type="button"
                 onClick={onSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary hover:bg-opacity-90 text-white p-2.5 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-2 top-1/2 -translate-y-1/2 bg-surface hover:bg-gray-100 border border-gray-200 text-primary p-2 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 disabled={loading}
               >
-                <SearchIcon className="w-5 h-5" />
+                {loading ? <SearchingDots /> : <SearchIcon className="w-5 h-5 text-primary" />}
               </button>
             </div>
             {/* Suggestions Dropdown */}
