@@ -1,18 +1,43 @@
 @import "tailwindcss";
 
+:root {
+  /* Default (Light) Mode */
+  --color-primary-val: #6c63ff;
+  --color-secondary-val: #ff6584;
+  --color-background-val: #f0f8ff;
+  --color-surface-val: #ffffff;
+  --color-text-main-val: #2d3748;
+  --color-accent-val: #ffd93d;
+}
+
+.dark {
+  /* Dark Mode Overrides */
+  --color-primary-val: #818cf8; /* Lighter Indigo */
+  --color-secondary-val: #fb7185; /* Rose 400 */
+  --color-background-val: #111827; /* Gray 900 */
+  --color-surface-val: #1f2937; /* Gray 800 */
+  --color-text-main-val: #f3f4f6; /* Gray 100 */
+  --color-accent-val: #fbbf24; /* Amber 400 */
+}
+
 @theme {
-  --color-primary: #6C63FF; /* Electric Indigo */
-  --color-secondary: #FF6584; /* Vibrant Coral */
-  --color-background: #F0F8FF; /* Alice Blue */
-  --color-surface: #FFFFFF; /* Pure White */
-  --color-text-main: #2D3748; /* Deep Navy */
-  --color-accent: #FFD93D; /* Sunny Yellow */
+  --color-primary: var(--color-primary-val);
+  --color-secondary: var(--color-secondary-val);
+  --color-background: var(--color-background-val);
+  --color-surface: var(--color-surface-val);
+  --color-text-main: var(--color-text-main-val);
+  --color-accent: var(--color-accent-val);
 
   --font-sans: Inter, sans-serif;
   --font-serif: "Playfair Display", serif;
 }
 
 /* Base styles */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-serif);
 }

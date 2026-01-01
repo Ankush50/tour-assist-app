@@ -27,6 +27,18 @@ const NonVegIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const SunIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+);
+
+const MoonIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+  </svg>
+);
+
 const HOTEL_IMAGES = [
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
   "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80",
@@ -192,12 +204,12 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
   if (!suggestions || suggestions.length === 0) return null;
 
   return (
-    <ul className="absolute z-60 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+    <ul className="absolute z-60 w-full bg-surface border border-secondary rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
       {suggestions.map((item, index) => (
         <li 
           key={index}
           onClick={() => onSelect(item)}
-          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700"
+          className="px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-text-main"
         >
           {item}
         </li>
@@ -207,7 +219,7 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
 };
 
 // --- Navbar Component ---
-const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect }) => {
+const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect, theme, toggleTheme }) => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -216,7 +228,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
   };
 
   return (
-    <nav className="bg-surface shadow-sm border-b border-secondary sticky top-0 z-50">
+    <nav className="bg-surface shadow-sm border-b border-secondary sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
@@ -235,7 +247,7 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
                 onChange={(e) => setDestination(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter a tourist place (e.g., Connaught Place, Delhi)"
-                className="w-full px-6 py-3 pr-14 text-base text-text-main bg-surface border-2 border-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all"
+                className="w-full px-6 py-3 pr-14 text-base text-text-main bg-surface border-2 border-secondary rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-all placeholder-gray-400"
                 required
               />
               <button
@@ -250,6 +262,15 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
             {/* Suggestions Dropdown */}
             <SuggestionsList suggestions={suggestions} onSelect={onSuggestionSelect} />
           </div>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-text-main"
+            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+          >
+            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+          </button>
         </div>
       </div>
     </nav>
@@ -432,6 +453,27 @@ function App() {
 
   // --- ADDED FOR NAVIGATION ---
   const [userLocation, setUserLocation] = useState(null);
+  
+  // --- Theme State ---
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('theme')) {
+      return localStorage.getItem('theme');
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -604,6 +646,8 @@ function App() {
         loading={loading}
         suggestions={suggestions}
         onSuggestionSelect={handleSuggestionSelect}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
       
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
