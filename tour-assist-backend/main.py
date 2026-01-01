@@ -124,6 +124,7 @@ async def create_place_by_address(
     new_place = models.Place(
         name=place_request.name,
         description=place_request.description,
+        address=place_request.address, # Save address
         type=place_request.category,
         location=location_point,
         # Default values for fields not provided
@@ -161,18 +162,35 @@ def search_places(
     # Using python difflib for simplicity as requested/planned)
     all_places = db.query(models.Place).all()
     
-    # 1. Exact/Contains Match (Case Insensitive)
-    exact_matches = [p for p in all_places if query.lower() in p.name.lower()]
+    # 1. Exact/Contains Match (Case Insensitive) - Name OR Address
+    exact_matches = [
+        p for p in all_places 
+        if query.lower() in p.name.lower() or (p.address and query.lower() in p.address.lower())
+    ]
     
     # 2. Fuzzy Match
-    # Get list of names not in exact_matches
+    # Get list of places not in exact_matches
     other_places = [p for p in all_places if p not in exact_matches]
-    other_names = [p.name for p in other_places]
+    
+    # We will fuzzy match against Name AND Address
+    # Create a map for easy lookup: string -> place
+    name_map = {p.name: p for p in other_places}
+    address_map = {p.address: p for p in other_places if p.address}
+    
+    all_searchable_strings = list(name_map.keys()) + list(address_map.keys())
     
     # Find close matches (cutoff=0.6 means 60% similarity)
-    close_matches_names = difflib.get_close_matches(query, other_names, n=5, cutoff=0.6)
+    close_matches_strings = difflib.get_close_matches(query, all_searchable_strings, n=5, cutoff=0.6)
     
-    fuzzy_matches = [p for p in other_places if p.name in close_matches_names]
+    fuzzy_matches = []
+    for s in close_matches_strings:
+        if s in name_map:
+            fuzzy_matches.append(name_map[s])
+        elif s in address_map:
+            fuzzy_matches.append(address_map[s])
+            
+    # Dedup fuzzy matches just in case
+    fuzzy_matches = list(set(fuzzy_matches))
     
     # Combine results
     final_results = exact_matches + fuzzy_matches

@@ -7,6 +7,7 @@ class Place(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
+    address = Column(String) # Added address column
     type = Column(String)
     price = Column(Integer)
     veg = Column(Boolean)
