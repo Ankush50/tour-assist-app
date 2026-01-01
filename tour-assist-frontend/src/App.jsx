@@ -39,6 +39,19 @@ const MoonIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+// --- New Icons ---
+const InstallIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  </svg>
+);
+
+const UserIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  </svg>
+);
+
 const HOTEL_IMAGES = [
   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
   "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80",
@@ -220,6 +233,30 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
 
 // --- Navbar Component ---
 const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect, theme, toggleTheme }) => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) {
+        alert("App installation is not available. You might already have it installed or your browser doesn't support it.");
+        return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    });
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -263,14 +300,33 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
             <SuggestionsList suggestions={suggestions} onSelect={onSuggestionSelect} />
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-text-main"
-            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
-          >
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-          </button>
+          <div className="flex items-center gap-3">
+             {/* Install App Button */}
+            <button
+              onClick={handleInstallClick}
+              className={`p-2 rounded-full transition-colors text-text-main ${deferredPrompt ? 'hover:bg-gray-200 dark:hover:bg-gray-700 animate-pulse text-primary' : 'hover:bg-gray-200 dark:hover:bg-gray-700 opacity-50'}`}
+              title={deferredPrompt ? "Install Web App" : "App Installed / Not Available"}
+            >
+              <InstallIcon />
+            </button>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-text-main"
+              title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+            >
+              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+            </button>
+
+             {/* Login Button */}
+             <button
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-opacity-90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              <UserIcon className="w-5 h-5" />
+              <span className="font-medium hidden md:inline whitespace-nowrap">Log in / Sign up</span>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
