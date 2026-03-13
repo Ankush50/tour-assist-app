@@ -94,7 +94,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 def serialize_place(place, db: Session, user=None):
     """Helper to serialize a single place model to dictionary"""
-    place_dict = {c.name: getattr(place, c.name) for c.name in place.__table__.columns.keys() if c.name != 'location'}
+    place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
     
     if place.location is not None:
         point_geom = db.scalar(func.ST_AsText(place.location))
