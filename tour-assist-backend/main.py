@@ -33,6 +33,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:5173", # Default for Vite
     "http://127.0.0.1:5173", # Alternative localhost format
+    "https://tourassist.netlify.app", # Netlify production frontend
 ]
 
 # Add frontend URL from settings if it's set
