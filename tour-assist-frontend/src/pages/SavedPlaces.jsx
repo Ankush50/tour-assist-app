@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Compass, MapPin, Star } from "lucide-react";
+import BackgroundDoodles from "../components/BackgroundDoodles";
 
 // Same getting API URL logic as App.jsx
 const getApiBaseUrl = () => {
@@ -34,7 +35,7 @@ const SavedPlaceCard = ({ place, onRemove }) => {
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location?.lat},${place.location?.lon}`;
 
   return (
-    <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] relative group">
+    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] relative group flex flex-col">
       <div className="relative h-48">
         <img
           className="w-full h-full object-cover"
@@ -106,18 +107,19 @@ const SavedPlaces = () => {
   const navigate = useNavigate();
   const username = localStorage.getItem("username");
 
-  if (!username) {
-    navigate("/login");
-    return null;
-  }
-
   const [savedPlaces, setSavedPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!username) {
+      navigate("/login");
+      return;
+    }
     fetchSavedPlaces();
-  }, []);
+  }, [username, navigate]);
+
+  if (!username) return null;
 
   const fetchSavedPlaces = async () => {
     const token = localStorage.getItem("token");
@@ -166,9 +168,11 @@ const SavedPlaces = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background font-sans text-text-main flex flex-col items-center">
+    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
+      <BackgroundDoodles />
+
       {/* Header */}
-      <header className="w-full bg-surface shadow-sm border-b border-secondary py-4 px-6 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
+      <header className="w-full bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-white/20 dark:border-gray-700/50 shadow-sm py-4 px-6 flex items-center justify-between sticky top-0 z-10 transition-colors duration-300">
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-primary hover:text-accent transition-colors font-medium"
@@ -220,7 +224,7 @@ const SavedPlaces = () => {
 
         {/* Content Area */}
         {!loading && !error && savedPlaces.length === 0 ? (
-          <div className="bg-surface rounded-2xl shadow-sm border border-secondary p-8 md:p-12 text-center flex flex-col items-center justify-center bg-opacity-50 min-h-[300px] max-w-2xl mx-auto w-full">
+          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-dashed border-secondary p-8 md:p-12 rounded-2xl shadow-xl text-center flex flex-col items-center justify-center min-h-[300px] max-w-2xl mx-auto w-full">
             <svg
               className="w-16 h-16 text-gray-400 mb-4"
               fill="none"

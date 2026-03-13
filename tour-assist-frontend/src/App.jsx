@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SavedPlaces from "./pages/SavedPlaces";
+import BackgroundDoodles from "./components/BackgroundDoodles";
 
 // --- Icon Components (No change) ---
 const StarIcon = ({ className = "w-4 h-4" }) => (
@@ -395,7 +396,7 @@ const Navbar = ({
   };
 
   return (
-    <nav className="bg-surface shadow-sm border-b border-secondary sticky top-0 z-50 transition-colors duration-300">
+    <nav className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-white/20 dark:border-gray-700/50 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center gap-6">
           {/* Branding - Top Left */}
@@ -757,7 +758,7 @@ const PlaceCard = ({ place, userLocation }) => {
       }
       className={`block relative ${!place.location ? "cursor-not-allowed" : ""} h-full`}
     >
-      <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full">
+      <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full">
         <div className="relative">
           <img
             className="aspect-[16/9] w-full object-cover"
@@ -1287,26 +1288,30 @@ function Home() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-background font-sans text-text-main flex flex-col">
-      {/* Navbar */}
-      <Navbar
-        destination={destination}
-        setDestination={setDestination}
-        onSearch={handleSearch}
-        loading={loading}
-        suggestions={suggestions}
-        onSuggestionSelect={handleSuggestionSelect}
-        theme={theme}
-        toggleTheme={toggleTheme}
-        onLoginClick={() => navigate("/login")}
-        isLoggedIn={isLoggedIn}
-        username={username}
-        onLogout={handleLogout}
-        navigate={navigate}
-      />
+    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
+      <BackgroundDoodles />
+
+      {/* Navbar Wrapper to match centering flow since App is flex-col items-center but Navbar wants 100% */}
+      <div className="w-full">
+        <Navbar
+          destination={destination}
+          setDestination={setDestination}
+          onSearch={handleSearch}
+          loading={loading}
+          suggestions={suggestions}
+          onSuggestionSelect={handleSuggestionSelect}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          onLoginClick={() => navigate("/login")}
+          isLoggedIn={isLoggedIn}
+          username={username}
+          onLogout={handleLogout}
+          navigate={navigate}
+        />
+      </div>
 
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
-        <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-2xl shadow-xl p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Category Filter */}
             <fieldset className="lg:col-span-3">
@@ -1452,8 +1457,10 @@ function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer Container Needs Full Width */}
+      <div className="w-full mt-auto">
+        <Footer />
+      </div>
     </div>
   );
 }
