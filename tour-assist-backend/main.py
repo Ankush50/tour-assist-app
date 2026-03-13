@@ -11,10 +11,12 @@ from shapely.geometry import Point
 import models
 import database
 from database import engine, get_db
-from schemas import PlaceCreateRequest
+from schemas import PlaceCreateRequest, UserCreate, UserLogin, Token
 from utils import get_location_from_address
+import auth
 import difflib
 from typing import List, Optional
+from datetime import timedelta
 # -------------------------------------------------
 
 # This creates the 'places' table if it doesn't exist
@@ -50,6 +52,36 @@ app.add_middleware(
 @app.get("/")
 def read_root():
     return {"message": "Tour-Assist API is connected to PostgreSQL!"}
+
+# --- AUTH ROUTES ---
+@app.post("/api/auth/register", response_model=Token)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+    
+    hashed_password = auth.get_password_hash(user.password)
+    new_user = models.User(username=user.username, password_hash=hashed_password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    access_token = auth.create_access_token(data={"sub": new_user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/api/auth/login", response_model=Token)
+def login_for_access_token(user_credentials: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.username == user_credentials.username).first()
+    if not user or not auth.verify_password(user_credentials.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token = auth.create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+# -------------------
 
 @app.get("/api/places")
 async def get_places(

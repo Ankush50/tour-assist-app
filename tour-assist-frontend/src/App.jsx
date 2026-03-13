@@ -1,4 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 // --- Icon Components (No change) ---
 const StarIcon = ({ className = "w-4 h-4" }) => (
@@ -8,47 +11,129 @@ const StarIcon = ({ className = "w-4 h-4" }) => (
 );
 
 const SearchIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
   </svg>
 );
 
 const VegIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 20 20">
-    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-600"/>
-    <circle cx="10" cy="10" r="4" fill="currentColor" className="text-green-600"/>
+    <rect
+      x="2"
+      y="2"
+      width="16"
+      height="16"
+      rx="2"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      className="text-green-600"
+    />
+    <circle
+      cx="10"
+      cy="10"
+      r="4"
+      fill="currentColor"
+      className="text-green-600"
+    />
   </svg>
 );
 
 const NonVegIcon = ({ className = "w-5 h-5" }) => (
   <svg className={className} viewBox="0 0 20 20">
-    <rect x="2" y="2" width="16" height="16" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-red-600"/>
-    <circle cx="10" cy="10" r="4" fill="currentColor" className="text-red-600"/>
+    <rect
+      x="2"
+      y="2"
+      width="16"
+      height="16"
+      rx="2"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      className="text-red-600"
+    />
+    <circle
+      cx="10"
+      cy="10"
+      r="4"
+      fill="currentColor"
+      className="text-red-600"
+    />
   </svg>
 );
 
 const SunIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+    />
   </svg>
 );
 
 const MoonIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+    />
   </svg>
 );
 
 // --- New Icons ---
 const InstallIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+    />
   </svg>
 );
 
 const UserIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+    />
   </svg>
 );
 
@@ -59,7 +144,7 @@ const HOTEL_IMAGES = [
   "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80",
   "https://plus.unsplash.com/premium_photo-1661953124283-76d0a8436b87?q=80&w=888&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?q=80&w=871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  "https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", 
+  "https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
 ];
 
 const RESTAURANT_IMAGES = [
@@ -71,13 +156,14 @@ const RESTAURANT_IMAGES = [
   "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   "https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=465&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-
 ];
 
 const getFallbackImage = (type, name) => {
-  const images = type === 'Hotel' ? HOTEL_IMAGES : RESTAURANT_IMAGES;
+  const images = type === "Hotel" ? HOTEL_IMAGES : RESTAURANT_IMAGES;
   // Simple hash function to deterministically pick an image based on name
-  const index = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % images.length;
+  const index =
+    name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+    images.length;
   return images[index];
 };
 
@@ -85,41 +171,44 @@ const getFallbackImage = (type, name) => {
 function filterAndSortPlaces(places, filters) {
   let filtered = [...places];
 
-  if (filters.type !== 'All') {
-    filtered = filtered.filter(place => place.type === filters.type);
+  if (filters.type !== "All") {
+    filtered = filtered.filter((place) => place.type === filters.type);
   }
 
-  if (filters.type !== 'Hotel') {
+  if (filters.type !== "Hotel") {
     if (filters.veg && !filters.nonVeg) {
-      filtered = filtered.filter(place => place.veg === true);
+      filtered = filtered.filter((place) => place.veg === true);
     } else if (!filters.veg && filters.nonVeg) {
-      filtered = filtered.filter(place => place.nonVeg === true);
+      filtered = filtered.filter((place) => place.nonVeg === true);
     } else if (!filters.veg && !filters.nonVeg) {
-      filtered = filtered.filter(place => place.type === 'Hotel');
+      filtered = filtered.filter((place) => place.type === "Hotel");
     }
   }
 
-  if (filters.type !== 'Restaurant') {
+  if (filters.type !== "Restaurant") {
     const selectedPrices = Object.keys(filters.price)
-      .filter(key => filters.price[key])
-      .map(key => parseInt(key));
+      .filter((key) => filters.price[key])
+      .map((key) => parseInt(key));
 
     if (selectedPrices.length > 0 && selectedPrices.length < 3) {
-      filtered = filtered.filter(place => place.type === 'Restaurant' || selectedPrices.includes(place.price));
+      filtered = filtered.filter(
+        (place) =>
+          place.type === "Restaurant" || selectedPrices.includes(place.price),
+      );
     }
   }
 
   switch (filters.sort) {
-    case 'rating':
+    case "rating":
       filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       break;
-    case 'price_low_high':
+    case "price_low_high":
       filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
       break;
-    case 'price_high_low':
+    case "price_high_low":
       filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
       break;
-    case 'nearest':
+    case "nearest":
     default:
       filtered.sort((a, b) => (a.distance || 0) - (b.distance || 0));
       break;
@@ -132,13 +221,13 @@ function filterAndSortPlaces(places, filters) {
 async function geocodeDestination(destination) {
   // Uses a free, public geocoding API (Nominatim)
   const GEOCODE_URL = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destination)}&format=json&limit=1`;
-  
+
   try {
     const response = await fetch(GEOCODE_URL);
     if (!response.ok) throw new Error(`Geocoding failed: ${response.status}`);
-    
+
     const data = await response.json();
-    
+
     if (data && data.length > 0) {
       const { lat, lon } = data[0];
       return { lat: parseFloat(lat), lon: parseFloat(lon) };
@@ -158,15 +247,18 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  
+
   // In production (when deployed), use Render URL
   // In development (localhost), use localhost:8000
-  if (import.meta.env.MODE === 'production' || window.location.hostname !== 'localhost') {
-    return 'https://tour-assist-app.onrender.com';
+  if (
+    import.meta.env.MODE === "production" ||
+    window.location.hostname !== "localhost"
+  ) {
+    return "https://tour-assist-app.onrender.com";
   }
-  
+
   // Default to localhost for local development
-  return 'http://localhost:8000';
+  return "http://localhost:8000";
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -178,39 +270,43 @@ console.log("API Base URL:", API_BASE_URL);
 // Renamed to 'fetchPlacesNearCoords' and now takes lat/lon as arguments.
 async function fetchPlacesNearCoords(lat, lon) {
   if (!lat || !lon) return [];
-  
+
   const API_URL = `${API_BASE_URL}/api/places?lat=${lat}&lon=${lon}`;
-  
+
   try {
     const response = await fetch(API_URL);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    
+
     // Map non_veg to nonVeg for frontend compatibility
     if (data.places && Array.isArray(data.places)) {
-      return data.places.map(place => ({
+      return data.places.map((place) => ({
         ...place,
-        nonVeg: place.non_veg !== undefined ? place.non_veg : place.nonVeg
+        nonVeg: place.non_veg !== undefined ? place.non_veg : place.nonVeg,
       }));
     }
-    
+
     return data.places || [];
   } catch (error) {
     console.error("Error fetching places:", error);
     console.error("API URL attempted:", API_URL);
-    
+
     // Check if it's a network error (backend not running)
-    if (error.message.includes('Failed to fetch') || error.message.includes('ERR_BLOCKED_BY_CLIENT')) {
-      console.error(`Backend server might not be running or request was blocked. Trying to connect to: ${API_BASE_URL}`);
+    if (
+      error.message.includes("Failed to fetch") ||
+      error.message.includes("ERR_BLOCKED_BY_CLIENT")
+    ) {
+      console.error(
+        `Backend server might not be running or request was blocked. Trying to connect to: ${API_BASE_URL}`,
+      );
     }
-    
+
     return [];
   }
 }
 // --- ************************** ---
-
 
 // --- Suggestions Component ---
 const SuggestionsList = ({ suggestions, onSelect }) => {
@@ -219,7 +315,7 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
   return (
     <ul className="absolute z-60 w-full bg-surface border border-secondary rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
       {suggestions.map((item, index) => (
-        <li 
+        <li
           key={index}
           onClick={() => onSelect(item)}
           className="px-4 py-2 hover:bg-primary/10 cursor-pointer text-sm text-text-main"
@@ -232,16 +328,34 @@ const SuggestionsList = ({ suggestions, onSelect }) => {
 };
 
 const SearchingDots = ({ className = "w-1.5 h-1.5" }) => (
-    <div className="flex gap-1 items-center justify-center p-1">
-        <div className={`${className} bg-blue-500 rounded-full animate-bounce`}></div>
-        <div className={`${className} bg-red-500 rounded-full animate-bounce animate-bounce-delay-100`}></div>
-        <div className={`${className} bg-yellow-500 rounded-full animate-bounce animate-bounce-delay-200`}></div>
-        <div className={`${className} bg-green-500 rounded-full animate-bounce animate-bounce-delay-300`}></div>
-    </div>
+  <div className="flex gap-1 items-center justify-center p-1">
+    <div
+      className={`${className} bg-blue-500 rounded-full animate-bounce`}
+    ></div>
+    <div
+      className={`${className} bg-red-500 rounded-full animate-bounce animate-bounce-delay-100`}
+    ></div>
+    <div
+      className={`${className} bg-yellow-500 rounded-full animate-bounce animate-bounce-delay-200`}
+    ></div>
+    <div
+      className={`${className} bg-green-500 rounded-full animate-bounce animate-bounce-delay-300`}
+    ></div>
+  </div>
 );
 
 // --- Navbar Component ---
-const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, onSuggestionSelect, theme, toggleTheme }) => {
+const Navbar = ({
+  destination,
+  setDestination,
+  onSearch,
+  loading,
+  suggestions,
+  onSuggestionSelect,
+  theme,
+  toggleTheme,
+  onLoginClick,
+}) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
@@ -249,25 +363,27 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
       e.preventDefault();
       setDeferredPrompt(e);
     };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstallClick = () => {
     if (!deferredPrompt) {
-        alert("App installation is not available. You might already have it installed or your browser doesn't support it.");
-        return;
+      alert(
+        "App installation is not available. You might already have it installed or your browser doesn't support it.",
+      );
+      return;
     }
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === 'accepted') {
+      if (choiceResult.outcome === "accepted") {
         setDeferredPrompt(null);
       }
     });
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       onSearch(e);
     }
@@ -286,11 +402,11 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
               🧭
             </span>
           </div>
-          
+
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl relative">
             <div className="relative">
-               <input
+              <input
                 type="text"
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
@@ -305,19 +421,30 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
                 className="absolute right-2 top-1/2 -translate-y-1/2 bg-surface hover:bg-gray-100 border border-gray-200 text-primary p-2 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 disabled={loading}
               >
-                {loading ? <SearchingDots /> : <SearchIcon className="w-5 h-5 text-primary" />}
+                {loading ? (
+                  <SearchingDots />
+                ) : (
+                  <SearchIcon className="w-5 h-5 text-primary" />
+                )}
               </button>
             </div>
             {/* Suggestions Dropdown */}
-            <SuggestionsList suggestions={suggestions} onSelect={onSuggestionSelect} />
+            <SuggestionsList
+              suggestions={suggestions}
+              onSelect={onSuggestionSelect}
+            />
           </div>
 
           <div className="flex items-center gap-3">
-             {/* Install App Button */}
+            {/* Install App Button */}
             <button
               onClick={handleInstallClick}
-              className={`p-2 rounded-full transition-colors text-text-main ${deferredPrompt ? 'hover:bg-gray-200 dark:hover:bg-gray-700 animate-pulse text-primary' : 'hover:bg-gray-200 dark:hover:bg-gray-700 opacity-50'}`}
-              title={deferredPrompt ? "Install Web App" : "App Installed / Not Available"}
+              className={`p-2 rounded-full transition-colors text-text-main ${deferredPrompt ? "hover:bg-gray-200 dark:hover:bg-gray-700 animate-pulse text-primary" : "hover:bg-gray-200 dark:hover:bg-gray-700 opacity-50"}`}
+              title={
+                deferredPrompt
+                  ? "Install Web App"
+                  : "App Installed / Not Available"
+              }
             >
               <InstallIcon />
             </button>
@@ -326,17 +453,20 @@ const Navbar = ({ destination, setDestination, onSearch, loading, suggestions, o
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-text-main"
-              title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+              title={`Switch to ${theme === "light" ? "Dark" : "Light"} Mode`}
             >
-              {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+              {theme === "light" ? <MoonIcon /> : <SunIcon />}
             </button>
 
-             {/* Login Button */}
-             <button
+            {/* Login Button */}
+            <button
+              onClick={onLoginClick}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-opacity-90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
             >
               <UserIcon className="w-5 h-5" />
-              <span className="font-medium hidden md:inline whitespace-nowrap">Log in / Sign up</span>
+              <span className="font-medium hidden md:inline whitespace-nowrap">
+                Log in / Sign up
+              </span>
             </button>
           </div>
         </div>
@@ -350,21 +480,30 @@ const Footer = () => (
   <footer className="bg-text-main text-surface dark:bg-surface dark:text-text-main border-t border-primary/20 mt-auto py-4">
     <div className="max-w-7xl mx-auto px-4 text-center">
       <div className="mb-2">
-        <span className="text-xl font-serif font-bold text-accent">Odyssey 🧭</span>
+        <span className="text-xl font-serif font-bold text-accent">
+          Odyssey 🧭
+        </span>
         <p className="text-xs text-gray-400">Your personal travel companion</p>
       </div>
       <div className="text-xs text-gray-300 space-y-2">
         <div className="flex justify-center gap-4 font-medium">
-          <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-primary transition-colors">Contact</a>
+          <a href="#" className="hover:text-primary transition-colors">
+            Privacy Policy
+          </a>
+          <a href="#" className="hover:text-primary transition-colors">
+            Terms of Service
+          </a>
+          <a href="#" className="hover:text-primary transition-colors">
+            Contact
+          </a>
         </div>
-        <p className="opacity-60">&copy; {new Date().getFullYear()} Odyssey. All rights reserved.</p>
+        <p className="opacity-60">
+          &copy; {new Date().getFullYear()} Odyssey. All rights reserved.
+        </p>
       </div>
     </div>
   </footer>
 );
-
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Radius of the earth in km
@@ -372,8 +511,10 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const dLon = deg2rad(lon2 - lon1);
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const d = R * c; // Distance in km
   return d;
@@ -387,7 +528,7 @@ function deg2rad(deg) {
 const PlaceCard = ({ place, userLocation }) => {
   const formatPrice = (price) => {
     if (!price) return null;
-    
+
     // Normalize large price values (e.g. 1200) to 1-3 scale for dollar signs
     let priceLevel = 1;
     if (price > 1500) priceLevel = 3;
@@ -398,29 +539,31 @@ const PlaceCard = ({ place, userLocation }) => {
     return (
       <div className="flex flex-col items-start">
         <span className="text-xs font-bold text-primary">
-            ₹{price} {/* Show actual price */}
+          ₹{price} {/* Show actual price */}
         </span>
         <span className="text-xs font-semibold text-gray-700 flex">
-          {'₹'.repeat(priceLevel)}
-          <span className="text-gray-400">{'₹'.repeat(3 - priceLevel)}</span>
+          {"₹".repeat(priceLevel)}
+          <span className="text-gray-400">{"₹".repeat(3 - priceLevel)}</span>
         </span>
       </div>
     );
   };
 
   const getRatingColor = (rating) => {
-    if (rating >= 4.5) return 'bg-primary';
-    if (rating >= 4.0) return 'bg-primary/80';
-    if (rating >= 3.5) return 'bg-accent/80';
-    return 'bg-accent';
+    if (rating >= 4.5) return "bg-primary";
+    if (rating >= 4.0) return "bg-primary/80";
+    if (rating >= 3.5) return "bg-accent/80";
+    return "bg-accent";
   };
 
   // Calculate distance from user if location is available
   const distanceFromUser = useMemo(() => {
     if (userLocation && place.location) {
       return calculateDistance(
-        userLocation.lat, userLocation.lon,
-        place.location.lat, place.location.lon
+        userLocation.lat,
+        userLocation.lon,
+        place.location.lat,
+        place.location.lon,
       );
     }
     return null;
@@ -430,11 +573,13 @@ const PlaceCard = ({ place, userLocation }) => {
 
   return (
     <a
-      href={place.location ? googleMapsUrl : '#'}
+      href={place.location ? googleMapsUrl : "#"}
       target="_blank"
       rel="noopener noreferrer"
-      title={place.location ? "Click to get directions" : "Location not available"}
-      className={`block ${!place.location ? 'cursor-not-allowed' : ''}`}
+      title={
+        place.location ? "Click to get directions" : "Location not available"
+      }
+      className={`block ${!place.location ? "cursor-not-allowed" : ""}`}
     >
       <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
         <div className="relative">
@@ -448,12 +593,15 @@ const PlaceCard = ({ place, userLocation }) => {
               if (e.target.src !== fallback) {
                 e.target.src = fallback;
               } else {
-                 e.target.src = 'https://placehold.co/400x225/f0f0f0/c2c2c2?text=Image+Not+Found';
+                e.target.src =
+                  "https://placehold.co/400x225/f0f0f0/c2c2c2?text=Image+Not+Found";
               }
             }}
           />
           {place.rating && (
-            <div className={`absolute top-2 right-2 px-2 py-1 rounded-md text-white text-sm font-bold ${getRatingColor(place.rating)}`}>
+            <div
+              className={`absolute top-2 right-2 px-2 py-1 rounded-md text-white text-sm font-bold ${getRatingColor(place.rating)}`}
+            >
               <div className="flex items-center gap-1">
                 <span>{place.rating}</span>
                 <StarIcon className="w-3 h-3" />
@@ -463,17 +611,24 @@ const PlaceCard = ({ place, userLocation }) => {
         </div>
         <div className="p-4">
           <div className="flex justify-between items-start mb-1">
-            <h3 className="text-lg font-bold text-text-main truncate" title={place.name}>
+            <h3
+              className="text-lg font-bold text-text-main truncate"
+              title={place.name}
+            >
               {place.name}
             </h3>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === 'Hotel' ? 'bg-secondary text-text-main' : 'bg-primary/20 text-primary'}`}>
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === "Hotel" ? "bg-secondary text-text-main" : "bg-primary/20 text-primary"}`}
+            >
               {place.type}
             </span>
           </div>
           <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
             <div className="flex items-center gap-2">
-              {place.type === 'Hotel' && <span>{formatPrice(place.price)}</span>}
-              {place.type === 'Restaurant' && (
+              {place.type === "Hotel" && (
+                <span>{formatPrice(place.price)}</span>
+              )}
+              {place.type === "Restaurant" && (
                 <div className="flex gap-2">
                   {place.veg && <VegIcon title="Vegetarian" />}
                   {place.nonVeg && <NonVegIcon title="Non-Vegetarian" />}
@@ -481,22 +636,28 @@ const PlaceCard = ({ place, userLocation }) => {
               )}
             </div>
           </div>
-          
+
           {/* Distance Info */}
           <div className="flex flex-col gap-0.5 mt-1 mb-2 text-xs text-gray-500">
-             {place.distance != null && (
+            {place.distance != null && (
               <span className="flex items-center gap-1">
-                 📍 {place.distance.toFixed(2)} km from search
+                📍 {place.distance.toFixed(2)} km from search
               </span>
             )}
             {distanceFromUser !== null && (
-              <span className="flex items-center gap-1 text-primary font-medium" title="Calculated from your browser's location">
-                 👤 {distanceFromUser.toFixed(2)} km from you (approx)
+              <span
+                className="flex items-center gap-1 text-primary font-medium"
+                title="Calculated from your browser's location"
+              >
+                👤 {distanceFromUser.toFixed(2)} km from you (approx)
               </span>
             )}
           </div>
 
-          <p className="text-sm text-gray-500 truncate" title={place.description}>
+          <p
+            className="text-sm text-gray-500 truncate"
+            title={place.description}
+          >
             {place.description}
           </p>
         </div>
@@ -506,41 +667,47 @@ const PlaceCard = ({ place, userLocation }) => {
 };
 
 // --- Main App Component ---
-function App() {
-  const [destination, setDestination] = useState(''); // Default to empty
+function Home() {
+  const [destination, setDestination] = useState(""); // Default to empty
   const [allPlaces, setAllPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('Find nearby hotels and restaurants for your trip.');
+  const [message, setMessage] = useState(
+    "Find nearby hotels and restaurants for your trip.",
+  );
   const [filters, setFilters] = useState({
-    type: 'All',
+    type: "All",
     veg: true,
     nonVeg: true,
     price: { 1: true, 2: true, 3: true },
-    sort: 'nearest', // Default sort to nearest
+    sort: "nearest", // Default sort to nearest
   });
 
   // --- ADDED FOR NAVIGATION ---
   const [userLocation, setUserLocation] = useState(null);
-  
+
   // --- Theme State ---
   const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('theme')) {
-      return localStorage.getItem('theme');
+    if (typeof window !== "undefined" && localStorage.getItem("theme")) {
+      return localStorage.getItem("theme");
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+    if (theme === "dark") {
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
-    localStorage.setItem('theme', theme);
+    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
 
   useEffect(() => {
@@ -558,7 +725,8 @@ function App() {
           let errorMessage = "Enable location services to get directions.";
           switch (error.code) {
             case error.PERMISSION_DENIED:
-              errorMessage = "You denied location access. Please enable it in your browser to get directions.";
+              errorMessage =
+                "You denied location access. Please enable it in your browser to get directions.";
               console.error("User denied the request for Geolocation.");
               break;
             case error.POSITION_UNAVAILABLE:
@@ -570,12 +738,13 @@ function App() {
               console.error("The request to get user location timed out.");
               break;
             default:
-              errorMessage = "An unknown error occurred while getting location.";
+              errorMessage =
+                "An unknown error occurred while getting location.";
               console.error("An unknown error occurred:", error.message);
               break;
           }
           setMessage(errorMessage);
-        }
+        },
       );
     } else {
       console.log("Geolocation is not available in this browser.");
@@ -591,24 +760,26 @@ function App() {
       const fetchDefaultPlaces = async () => {
         setLoading(true);
         try {
-          const response = await fetch(`${API_BASE_URL}/api/places/all?limit=50`);
+          const response = await fetch(
+            `${API_BASE_URL}/api/places/all?limit=50`,
+          );
           if (response.ok) {
             const data = await response.json();
             setAllPlaces(data.places || []);
             if (data.places && data.places.length > 0) {
-               setMessage('Top places for you');
+              setMessage("Top places for you");
             } else {
-               setMessage('No places found in database.');
+              setMessage("No places found in database.");
             }
           }
         } catch (error) {
-           console.error("Error fetching default places:", error);
-           setMessage("Could not load places. Please check connection.");
+          console.error("Error fetching default places:", error);
+          setMessage("Could not load places. Please check connection.");
         } finally {
           setLoading(false);
         }
       };
-      
+
       fetchDefaultPlaces();
     }
   }, []); // Run ONCE on mount
@@ -625,9 +796,11 @@ function App() {
         setSuggestions([]);
         return;
       }
-      
+
       try {
-        const response = await fetch(`${API_BASE_URL}/api/places/suggestions?query=${encodeURIComponent(destination)}`);
+        const response = await fetch(
+          `${API_BASE_URL}/api/places/suggestions?query=${encodeURIComponent(destination)}`,
+        );
         if (response.ok) {
           const data = await response.json();
           setSuggestions(data.suggestions || []);
@@ -645,41 +818,43 @@ function App() {
     setDestination(suggestion);
     setSuggestions([]); // Clear suggestions
     // Trigger search immediately with the suggestion
-    // We need to pass a fake event or handle it differently, 
+    // We need to pass a fake event or handle it differently,
     // for simplicity, let's just set state and let user click or handle in effect
     // But better to trigger search:
-    handleSearch(null, suggestion); 
+    handleSearch(null, suggestion);
   };
   // --- END ADDED CODE ---
 
   // --- **** UPDATED SEARCH HANDLER **** ---
   const handleSearch = async (e, overrideDestination) => {
     if (e) e.preventDefault();
-    
+
     // Use override if provided (from suggestion click), otherwise state
     const searchTerm = overrideDestination || destination;
 
     if (!searchTerm.trim()) {
-      setMessage('Please enter a destination to search.');
+      setMessage("Please enter a destination to search.");
       return;
     }
-    
+
     // Updates the input if we used override
     if (overrideDestination) {
-        setDestination(overrideDestination);
+      setDestination(overrideDestination);
     }
     setSuggestions([]); // Hide suggestions on search
 
     setLoading(true);
-    setMessage('');
+    setMessage("");
     setAllPlaces([]);
 
     try {
       // Step 1: Search in Backend first (Fuzzy Search)
       // This handles "exact production addresses" check first as requested
-      const searchResponse = await fetch(`${API_BASE_URL}/api/places/search?query=${encodeURIComponent(searchTerm)}`);
+      const searchResponse = await fetch(
+        `${API_BASE_URL}/api/places/search?query=${encodeURIComponent(searchTerm)}`,
+      );
       let backendPlaces = [];
-      
+
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
         backendPlaces = searchData.places || [];
@@ -688,24 +863,29 @@ function App() {
       if (backendPlaces.length > 0) {
         // --- Try to calculate distance from search term ---
         try {
-           // We geocode the search term (e.g. "Delhi") to get a reference point
-           const searchCoords = await geocodeDestination(searchTerm);
-           if (searchCoords) {
-             backendPlaces = backendPlaces.map(p => {
-               if(p.location && p.location.lat && p.location.lon) {
-                 return { 
-                    ...p, 
-                    distance: calculateDistance(searchCoords.lat, searchCoords.lon, p.location.lat, p.location.lon) 
-                 };
-               }
-               return p;
-             });
-             // Sort by distance if they are close? 
-             // Optional: backendPlaces.sort((a,b) => (a.distance||0) - (b.distance||0));
-             // But let's keep relevance order from backend (Exact match first)
-           }
-        } catch(e) { 
-            console.warn("Could not geocode for distance:", e); 
+          // We geocode the search term (e.g. "Delhi") to get a reference point
+          const searchCoords = await geocodeDestination(searchTerm);
+          if (searchCoords) {
+            backendPlaces = backendPlaces.map((p) => {
+              if (p.location && p.location.lat && p.location.lon) {
+                return {
+                  ...p,
+                  distance: calculateDistance(
+                    searchCoords.lat,
+                    searchCoords.lon,
+                    p.location.lat,
+                    p.location.lon,
+                  ),
+                };
+              }
+              return p;
+            });
+            // Sort by distance if they are close?
+            // Optional: backendPlaces.sort((a,b) => (a.distance||0) - (b.distance||0));
+            // But let's keep relevance order from backend (Exact match first)
+          }
+        } catch (e) {
+          console.warn("Could not geocode for distance:", e);
         }
         // -------------------------------------------------
 
@@ -714,13 +894,15 @@ function App() {
         setLoading(false);
         return; // FOUND IN DB! Stop here.
       }
-      
+
       // Step 2: If NOT in DB, fallback to Geocoding (External Search)
       console.log("Not found in DB, falling back to geocoding...");
       const coords = await geocodeDestination(searchTerm);
 
       if (!coords) {
-        setMessage(`Could not find coordinates for "${searchTerm}". Please try a different location.`);
+        setMessage(
+          `Could not find coordinates for "${searchTerm}". Please try a different location.`,
+        );
         setLoading(false);
         return;
       }
@@ -730,11 +912,15 @@ function App() {
       setAllPlaces(places);
 
       if (places.length === 0) {
-        setMessage(`No results found near "${searchTerm}". The database might be empty or there are no places within 1km of this location.`);
+        setMessage(
+          `No results found near "${searchTerm}". The database might be empty or there are no places within 1km of this location.`,
+        );
       }
     } catch (error) {
       console.error("Search error:", error);
-      setMessage(`Error searching for "${searchTerm}". Please check if the backend server is running.`);
+      setMessage(
+        `Error searching for "${searchTerm}". Please check if the backend server is running.`,
+      );
     } finally {
       setLoading(false);
     }
@@ -744,12 +930,15 @@ function App() {
 
   const handleFilterChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === 'price') {
-      setFilters(prev => ({ ...prev, price: { ...prev.price, [value]: checked } }));
-    } else if (type === 'checkbox') {
-      setFilters(prev => ({ ...prev, [name]: checked }));
+    if (name === "price") {
+      setFilters((prev) => ({
+        ...prev,
+        price: { ...prev.price, [value]: checked },
+      }));
+    } else if (type === "checkbox") {
+      setFilters((prev) => ({ ...prev, [name]: checked }));
     } else {
-      setFilters(prev => ({ ...prev, [name]: value }));
+      setFilters((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -760,7 +949,7 @@ function App() {
   return (
     <div className="min-h-screen bg-background font-sans text-text-main flex flex-col">
       {/* Navbar */}
-      <Navbar 
+      <Navbar
         destination={destination}
         setDestination={setDestination}
         onSearch={handleSearch}
@@ -769,24 +958,30 @@ function App() {
         onSuggestionSelect={handleSuggestionSelect}
         theme={theme}
         toggleTheme={toggleTheme}
+        onLoginClick={() => navigate("/login")}
       />
-      
+
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
         <div className="bg-surface rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Category Filter */}
             <fieldset className="lg:col-span-3">
-              <legend className="text-sm font-semibold text-gray-700 mb-3">Category</legend>
+              <legend className="text-sm font-semibold text-gray-700 mb-3">
+                Category
+              </legend>
               <div className="flex flex-wrap gap-3">
-                {['All', 'Hotel', 'Restaurant'].map(type => (
+                {["All", "Hotel", "Restaurant"].map((type) => (
                   <label key={type} className="relative cursor-pointer">
                     <input
-                      type="radio" name="type" value={type}
-                      checked={filters.type === type} onChange={handleFilterChange}
+                      type="radio"
+                      name="type"
+                      value={type}
+                      checked={filters.type === type}
+                      onChange={handleFilterChange}
                       className="peer sr-only"
                     />
                     <span className="block px-4 py-2 rounded-xl border-2 border-secondary text-sm font-medium text-text-main transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                      {type === 'All' ? 'All' : type + 's'}
+                      {type === "All" ? "All" : type + "s"}
                     </span>
                   </label>
                 ))}
@@ -795,14 +990,22 @@ function App() {
 
             {/* Preferences Filter */}
             <fieldset className="lg:col-span-5">
-              <legend className="text-sm font-semibold text-gray-700 mb-3">Preferences</legend>
+              <legend className="text-sm font-semibold text-gray-700 mb-3">
+                Preferences
+              </legend>
               <div className="flex flex-wrap gap-4">
                 {/* Veg/Non-Veg */}
-                <div className={`flex gap-3 ${filters.type === 'Hotel' ? 'opacity-40 pointer-events-none' : ''}`}>
+                <div
+                  className={`flex gap-3 ${filters.type === "Hotel" ? "opacity-40 pointer-events-none" : ""}`}
+                >
                   <label className="relative cursor-pointer">
                     <input
-                      type="checkbox" name="veg" checked={filters.veg} onChange={handleFilterChange}
-                      disabled={filters.type === 'Hotel'} className="peer sr-only"
+                      type="checkbox"
+                      name="veg"
+                      checked={filters.veg}
+                      onChange={handleFilterChange}
+                      disabled={filters.type === "Hotel"}
+                      className="peer sr-only"
                     />
                     <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
                       <VegIcon className="w-4 h-4" />
@@ -811,8 +1014,12 @@ function App() {
                   </label>
                   <label className="relative cursor-pointer">
                     <input
-                      type="checkbox" name="nonVeg" checked={filters.nonVeg} onChange={handleFilterChange}
-                      disabled={filters.type === 'Hotel'} className="peer sr-only"
+                      type="checkbox"
+                      name="nonVeg"
+                      checked={filters.nonVeg}
+                      onChange={handleFilterChange}
+                      disabled={filters.type === "Hotel"}
+                      className="peer sr-only"
                     />
                     <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent hover:border-accent/50">
                       <NonVegIcon className="w-4 h-4" />
@@ -820,31 +1027,51 @@ function App() {
                     </span>
                   </label>
                 </div>
-                
+
                 {/* Price Filter */}
-                <div className={`flex gap-3 border-l border-gray-200 pl-4 ${filters.type === 'Restaurant' ? 'opacity-40 pointer-events-none' : ''}`}>
-                  {[1, 2, 3].map(price => {
-                    const priceLabels = { 1: 'Budget', 2: 'Standard', 3: 'Premium' };
+                <div
+                  className={`flex gap-3 border-l border-gray-200 pl-4 ${filters.type === "Restaurant" ? "opacity-40 pointer-events-none" : ""}`}
+                >
+                  {[1, 2, 3].map((price) => {
+                    const priceLabels = {
+                      1: "Budget",
+                      2: "Standard",
+                      3: "Premium",
+                    };
                     return (
-                    <label key={price} className="relative cursor-pointer">
-                      <input
-                        type="checkbox" name="price" value={price} checked={filters.price[price]} onChange={handleFilterChange}
-                        disabled={filters.type === 'Restaurant'} className="peer sr-only"
-                      />
-                      <span className="block px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                        {priceLabels[price]}
-                      </span>
-                    </label>
-                  );})}
+                      <label key={price} className="relative cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="price"
+                          value={price}
+                          checked={filters.price[price]}
+                          onChange={handleFilterChange}
+                          disabled={filters.type === "Restaurant"}
+                          className="peer sr-only"
+                        />
+                        <span className="block px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
+                          {priceLabels[price]}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </fieldset>
 
             {/* Sort By */}
             <div className="lg:col-span-4">
-              <label htmlFor="sort" className="text-sm font-semibold text-gray-700 block mb-3">Sort By</label>
+              <label
+                htmlFor="sort"
+                className="text-sm font-semibold text-gray-700 block mb-3"
+              >
+                Sort By
+              </label>
               <select
-                id="sort" name="sort" value={filters.sort} onChange={handleFilterChange}
+                id="sort"
+                name="sort"
+                value={filters.sort}
+                onChange={handleFilterChange}
                 className="w-full px-4 py-2.5 border-2 border-secondary rounded-xl bg-surface focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent text-sm font-medium text-text-main hover:border-primary/50 transition-all"
               >
                 <option value="nearest">📍 Nearest First</option>
@@ -858,26 +1085,44 @@ function App() {
 
         <div>
           {loading && (
-             <div className="flex justify-center items-center py-20">
-                <SearchingDots className="w-4 h-4" />
-             </div>
+            <div className="flex justify-center items-center py-20">
+              <SearchingDots className="w-4 h-4" />
+            </div>
           )}
-          
-          {message && !loading && <p className="text-center text-gray-600 text-lg">{message}</p>}
-          
+
+          {message && !loading && (
+            <p className="text-center text-gray-600 text-lg">{message}</p>
+          )}
+
           {!loading && filteredResults.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResults.map(place => (
-                <PlaceCard key={place.id} place={place} userLocation={userLocation} />
+              {filteredResults.map((place) => (
+                <PlaceCard
+                  key={place.id}
+                  place={place}
+                  userLocation={userLocation}
+                />
               ))}
             </div>
           )}
         </div>
       </main>
-      
+
       {/* Footer */}
       <Footer />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

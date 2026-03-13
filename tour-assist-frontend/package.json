@@ -12,9 +12,11 @@
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "autoprefixer": "^10.4.21",
+    "lucide-react": "^0.577.0",
     "nodemon": "^3.1.11",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.13.1",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {

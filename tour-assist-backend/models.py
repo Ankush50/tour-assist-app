@@ -23,3 +23,14 @@ class Place(Base):
     
     # This maps to the GEOGRAPHY column
     location = Column(Geography(geometry_type='POINT', srid=4326))
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    password_hash = Column(String)
+    
+    # We can use func.now() manually or import it
+    from sqlalchemy.sql import func
+    created_at = Column(String, default=func.now())  # Or DateTime if preferred, let's stick to string if we don't import DateTime globally
