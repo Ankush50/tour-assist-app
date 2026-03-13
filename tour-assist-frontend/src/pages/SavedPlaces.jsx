@@ -168,7 +168,7 @@ const SavedPlaces = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
+    <div className="min-h-screen bg-background relative font-sans text-text-main flex flex-col items-center">
       <BackgroundDoodles />
 
       {/* Header */}

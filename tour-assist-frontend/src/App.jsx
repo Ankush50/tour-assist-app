@@ -749,23 +749,24 @@ const PlaceCard = ({ place, userLocation }) => {
   };
 
   return (
-    <a
-      href={place.location ? googleMapsUrl : "#"}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={
-        place.location ? "Click to get directions" : "Location not available"
-      }
-      className={`block relative ${!place.location ? "cursor-not-allowed" : ""} h-full`}
-    >
-      <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full">
-        <div className="relative">
+    <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full relative">
+      <div className="relative">
+        <a
+          href={place.location ? googleMapsUrl : "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={
+            place.location
+              ? "Click to get directions"
+              : "Location not available"
+          }
+          className={`block ${!place.location ? "cursor-not-allowed pointer-events-none" : ""}`}
+        >
           <img
             className="aspect-[16/9] w-full object-cover"
             src={place.image_url || getFallbackImage(place.type, place.name)}
             alt={place.name}
             onError={(e) => {
-              // Prevent infinite loop if fallback also fails
               const fallback = getFallbackImage(place.type, place.name);
               if (e.target.src !== fallback) {
                 e.target.src = fallback;
@@ -785,206 +786,207 @@ const PlaceCard = ({ place, userLocation }) => {
               </div>
             </div>
           )}
+        </a>
 
-          {/* HEART ICON FOR SAVING */}
-          <button
-            onClick={toggleSave}
-            title={isSaved ? "Remove from Saved Places" : "Save this Place"}
-            className="absolute top-2 right-2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 shadow-md backdrop-blur-sm transition-all duration-300 transform hover:scale-110 z-10"
+        {/* HEART ICON FOR SAVING */}
+        <button
+          onClick={toggleSave}
+          title={isSaved ? "Remove from Saved Places" : "Save this Place"}
+          className="absolute top-2 right-2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 shadow-md backdrop-blur-sm transition-all duration-300 transform hover:scale-110 z-10"
+        >
+          <svg
+            className={`w-5 h-5 transition-colors ${isSaved ? "text-red-500 fill-current" : "fill-none"}`}
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={isSaved ? 0 : 2}
           >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        </button>
+      </div>
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-1">
+          <a
+            href={place.location ? googleMapsUrl : "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-lg font-bold text-text-main truncate hover:text-primary transition-colors ${!place.location ? "cursor-not-allowed pointer-events-none" : ""}`}
+            title={place.name}
+          >
+            {place.name}
+          </a>
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === "Hotel" ? "bg-secondary text-text-main" : "bg-primary/20 text-primary"}`}
+          >
+            {place.type}
+          </span>
+        </div>
+        <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
+          <div className="flex items-center gap-2">
+            {place.type === "Hotel" && <span>{formatPrice(place.price)}</span>}
+            {place.type === "Restaurant" && (
+              <div className="flex gap-2">
+                {place.veg && <VegIcon title="Vegetarian" />}
+                {place.nonVeg && <NonVegIcon title="Non-Vegetarian" />}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Distance Info */}
+        <div className="flex flex-col gap-0.5 mt-1 mb-2 text-xs text-gray-500">
+          {place.distance != null && (
+            <span className="flex items-center gap-1">
+              📍 {place.distance.toFixed(2)} km from search
+            </span>
+          )}
+          {distanceFromUser !== null && (
+            <span
+              className="flex items-center gap-1 text-primary font-medium"
+              title="Calculated from your browser's location"
+            >
+              👤 {distanceFromUser.toFixed(2)} km from you (approx)
+            </span>
+          )}
+        </div>
+
+        <p
+          className="text-sm text-gray-500 line-clamp-2 mt-auto min-h-[40px]"
+          title={place.description}
+        >
+          {place.description}
+        </p>
+
+        {/* REVIEWS TOGGLE BUTTON */}
+        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <button
+            onClick={handleToggleReviews}
+            className="text-sm text-primary font-semibold hover:text-accent transition-colors flex items-center gap-1 w-full justify-center"
+          >
+            {showReviews ? "Hide Reviews" : "Read / Write Reviews"}
             <svg
-              className={`w-5 h-5 transition-colors ${isSaved ? "text-red-500 fill-current" : "fill-none"}`}
+              className={`w-4 h-4 transform transition-transform ${showReviews ? "rotate-180" : ""}`}
+              fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              strokeWidth={isSaved ? 0 : 2}
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
               />
             </svg>
           </button>
         </div>
-        <div className="p-4">
-          <div className="flex justify-between items-start mb-1">
-            <h3
-              className="text-lg font-bold text-text-main truncate"
-              title={place.name}
-            >
-              {place.name}
-            </h3>
-            <span
-              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === "Hotel" ? "bg-secondary text-text-main" : "bg-primary/20 text-primary"}`}
-            >
-              {place.type}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm text-gray-600 mb-2">
-            <div className="flex items-center gap-2">
-              {place.type === "Hotel" && (
-                <span>{formatPrice(place.price)}</span>
+
+        {/* REVIEWS SECTION */}
+        {showReviews && (
+          <div
+            className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 cursor-default"
+            onClick={(e) => e.preventDefault()}
+          >
+            {/* Review Form */}
+            <div className="mb-6">
+              <h4 className="text-sm font-bold text-text-main mb-2">
+                Leave a Review
+              </h4>
+              {!localStorage.getItem("token") ? (
+                <p className="text-xs text-gray-500 italic">
+                  Please log in to leave a review.
+                </p>
+              ) : (
+                <form
+                  onSubmit={handleSubmitReview}
+                  className="flex flex-col gap-2"
+                >
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setNewReviewRating(star);
+                        }}
+                        className={`focus:outline-none ${star <= newReviewRating ? "text-yellow-400" : "text-gray-300"}`}
+                      >
+                        <StarIcon className="w-5 h-5 fill-current" />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={newReviewText}
+                    onChange={(e) => setNewReviewText(e.target.value)}
+                    placeholder="Share your experience..."
+                    className="w-full text-sm p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-text-main focus:ring-1 focus:ring-primary outline-none resize-none"
+                    rows="2"
+                    required
+                  ></textarea>
+                  <button
+                    type="submit"
+                    disabled={submittingReview}
+                    className="self-end px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-md hover:bg-opacity-90 transition-colors disabled:opacity-50"
+                  >
+                    {submittingReview ? "Posting..." : "Post Review"}
+                  </button>
+                </form>
               )}
-              {place.type === "Restaurant" && (
-                <div className="flex gap-2">
-                  {place.veg && <VegIcon title="Vegetarian" />}
-                  {place.nonVeg && <NonVegIcon title="Non-Vegetarian" />}
+            </div>
+
+            {/* Reviews List */}
+            <div>
+              <h4 className="text-sm font-bold text-text-main mb-3 border-b border-gray-200 dark:border-gray-700 pb-1">
+                Public Reviews
+              </h4>
+              {loadingReviews ? (
+                <div className="flex justify-center p-4">
+                  <SearchingDots className="w-1.5 h-1.5" />
+                </div>
+              ) : reviews.length === 0 ? (
+                <p className="text-xs text-gray-500 italic text-center py-2">
+                  No reviews yet. Be the first!
+                </p>
+              ) : (
+                <div className="flex flex-col gap-4 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="bg-white dark:bg-gray-900 p-3 rounded-md shadow-sm border border-gray-100 dark:border-gray-800"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-bold text-primary">
+                          {review.username}
+                        </span>
+                        <div className="flex items-center text-yellow-400">
+                          <span className="text-[10px] text-gray-500 mr-1">
+                            {review.rating}
+                          </span>
+                          <StarIcon className="w-2.5 h-2.5 fill-current" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        {review.comment}
+                      </p>
+                      <span className="text-[9px] text-gray-400 block mt-2">
+                        {new Date(review.created_at).toLocaleDateString(
+                          undefined,
+                          { year: "numeric", month: "short", day: "numeric" },
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
-
-          {/* Distance Info */}
-          <div className="flex flex-col gap-0.5 mt-1 mb-2 text-xs text-gray-500">
-            {place.distance != null && (
-              <span className="flex items-center gap-1">
-                📍 {place.distance.toFixed(2)} km from search
-              </span>
-            )}
-            {distanceFromUser !== null && (
-              <span
-                className="flex items-center gap-1 text-primary font-medium"
-                title="Calculated from your browser's location"
-              >
-                👤 {distanceFromUser.toFixed(2)} km from you (approx)
-              </span>
-            )}
-          </div>
-
-          <p
-            className="text-sm text-gray-500 line-clamp-2 mt-auto min-h-[40px]"
-            title={place.description}
-          >
-            {place.description}
-          </p>
-
-          {/* REVIEWS TOGGLE BUTTON */}
-          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <button
-              onClick={handleToggleReviews}
-              className="text-sm text-primary font-semibold hover:text-accent transition-colors flex items-center gap-1 w-full justify-center"
-            >
-              {showReviews ? "Hide Reviews" : "Read / Write Reviews"}
-              <svg
-                className={`w-4 h-4 transform transition-transform ${showReviews ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* REVIEWS SECTION */}
-          {showReviews && (
-            <div
-              className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 cursor-default"
-              onClick={(e) => e.preventDefault()}
-            >
-              {/* Review Form */}
-              <div className="mb-6">
-                <h4 className="text-sm font-bold text-text-main mb-2">
-                  Leave a Review
-                </h4>
-                {!localStorage.getItem("token") ? (
-                  <p className="text-xs text-gray-500 italic">
-                    Please log in to leave a review.
-                  </p>
-                ) : (
-                  <form
-                    onSubmit={handleSubmitReview}
-                    className="flex flex-col gap-2"
-                  >
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setNewReviewRating(star);
-                          }}
-                          className={`focus:outline-none ${star <= newReviewRating ? "text-yellow-400" : "text-gray-300"}`}
-                        >
-                          <StarIcon className="w-5 h-5 fill-current" />
-                        </button>
-                      ))}
-                    </div>
-                    <textarea
-                      value={newReviewText}
-                      onChange={(e) => setNewReviewText(e.target.value)}
-                      placeholder="Share your experience..."
-                      className="w-full text-sm p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-text-main focus:ring-1 focus:ring-primary outline-none resize-none"
-                      rows="2"
-                      required
-                    ></textarea>
-                    <button
-                      type="submit"
-                      disabled={submittingReview}
-                      className="self-end px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-md hover:bg-opacity-90 transition-colors disabled:opacity-50"
-                    >
-                      {submittingReview ? "Posting..." : "Post Review"}
-                    </button>
-                  </form>
-                )}
-              </div>
-
-              {/* Reviews List */}
-              <div>
-                <h4 className="text-sm font-bold text-text-main mb-3 border-b border-gray-200 dark:border-gray-700 pb-1">
-                  Public Reviews
-                </h4>
-                {loadingReviews ? (
-                  <div className="flex justify-center p-4">
-                    <SearchingDots className="w-1.5 h-1.5" />
-                  </div>
-                ) : reviews.length === 0 ? (
-                  <p className="text-xs text-gray-500 italic text-center py-2">
-                    No reviews yet. Be the first!
-                  </p>
-                ) : (
-                  <div className="flex flex-col gap-4 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                    {reviews.map((review) => (
-                      <div
-                        key={review.id}
-                        className="bg-white dark:bg-gray-900 p-3 rounded-md shadow-sm border border-gray-100 dark:border-gray-800"
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-bold text-primary">
-                            {review.username}
-                          </span>
-                          <div className="flex items-center text-yellow-400">
-                            <span className="text-[10px] text-gray-500 mr-1">
-                              {review.rating}
-                            </span>
-                            <StarIcon className="w-2.5 h-2.5 fill-current" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {review.comment}
-                        </p>
-                        <span className="text-[9px] text-gray-400 block mt-2">
-                          {new Date(review.created_at).toLocaleDateString(
-                            undefined,
-                            { year: "numeric", month: "short", day: "numeric" },
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
-    </a>
+    </div>
   );
 };
 
@@ -1288,7 +1290,7 @@ function Home() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
+    <div className="min-h-screen bg-background relative font-sans text-text-main flex flex-col items-center">
       <BackgroundDoodles />
 
       {/* Navbar Wrapper to match centering flow since App is flex-col items-center but Navbar wants 100% */}
