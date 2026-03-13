@@ -16,7 +16,7 @@ from utils import get_location_from_address
 import auth
 import difflib
 from typing import List, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime
 # -------------------------------------------------
 
 # This creates the 'places' table if it doesn't exist
@@ -179,7 +179,7 @@ def create_review(
         "place_id": db_review.place_id,
         "rating": db_review.rating,
         "comment": db_review.comment,
-        "created_at": str(db_review.created_at)
+        "created_at": str(db_review.created_at) if db_review.created_at else str(datetime.utcnow())
     }
 
 @app.get("/api/places/{place_id}/reviews", response_model=List[ReviewResponse])
