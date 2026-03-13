@@ -104,8 +104,8 @@ const Signup = () => {
               <input
                 type="text"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                placeholder="Pick a tasty username"
+                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+                placeholder="Pick a username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -117,7 +117,7 @@ const Signup = () => {
               <input
                 type="password"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
                 placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -130,7 +130,7 @@ const Signup = () => {
               <input
                 type="password"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-pink-50 border border-pink-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
                 placeholder="Repeat your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -145,7 +145,7 @@ const Signup = () => {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
-                  Cooking...
+                  Processing...
                 </span>
               ) : (
                 "Sign Up Now"

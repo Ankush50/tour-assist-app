@@ -92,7 +92,7 @@ const Login = () => {
               <input
                 type="text"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -105,7 +105,7 @@ const Login = () => {
               <input
                 type="password"
                 required
-                className="w-full px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-orange-50 border border-orange-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -120,7 +120,7 @@ const Login = () => {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
-                  Baking...
+                  Logging in...
                 </span>
               ) : (
                 "Dive In"
