@@ -1,6 +1,16 @@
-from sqlalchemy import Column, Integer, String, Boolean, Numeric, Text
+from sqlalchemy import Column, Integer, String, Boolean, Numeric, Text, ForeignKey, Table, DateTime
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from geoalchemy2 import Geography
 from database import Base
+
+# Association table for Many-to-Many relationship (Users <-> Saved Places)
+user_saved_places = Table(
+    'user_saved_places',
+    Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
+    Column('place_id', Integer, ForeignKey('places.id'), primary_key=True)
+)
 
 class Place(Base):
     __tablename__ = "places"
@@ -23,6 +33,10 @@ class Place(Base):
     
     # This maps to the GEOGRAPHY column
     location = Column(Geography(geometry_type='POINT', srid=4326))
+    
+    # Relationships
+    saved_by_users = relationship("User", secondary=user_saved_places, back_populates="saved_places")
+    reviews = relationship("Review", back_populates="place")
 
 class User(Base):
     __tablename__ = "users"
@@ -30,7 +44,22 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
+    created_at = Column(DateTime, default=func.now())
     
-    # We can use func.now() manually or import it
-    from sqlalchemy.sql import func
-    created_at = Column(String, default=func.now())  # Or DateTime if preferred, let's stick to string if we don't import DateTime globally
+    # Relationships
+    saved_places = relationship("Place", secondary=user_saved_places, back_populates="saved_by_users")
+    reviews = relationship("Review", back_populates="user")
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    place_id = Column(Integer, ForeignKey("places.id"))
+    rating = Column(Integer)  # Assuming 1 to 5 stars
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="reviews")
+    place = relationship("Place", back_populates="reviews")

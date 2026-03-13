@@ -11,7 +11,7 @@ from shapely.geometry import Point
 import models
 import database
 from database import engine, get_db
-from schemas import PlaceCreateRequest, UserCreate, UserLogin, Token
+from schemas import PlaceCreateRequest, UserCreate, UserLogin, Token, ReviewCreate, ReviewResponse, PlaceResponse
 from utils import get_location_from_address
 import auth
 import difflib
@@ -69,6 +69,141 @@ def login_for_access_token(user_credentials: UserLogin, db: Session = Depends(ge
     return {"access_token": access_token, "token_type": "bearer"}
 # -------------------
 
+# --- AUTH DEPENDENCIES ---
+from fastapi.security import OAuth2PasswordBearer
+import jwt
+from auth import oauth2_scheme, SECRET_KEY, ALGORITHM
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+    user = db.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+def serialize_place(place, db: Session, user=None):
+    """Helper to serialize a single place model to dictionary"""
+    place_dict = {c.name: getattr(place, c.name) for c.name in place.__table__.columns.keys() if c.name != 'location'}
+    
+    if place.location is not None:
+        point_geom = db.scalar(func.ST_AsText(place.location))
+        point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
+        place_dict["location"] = {
+            "lon": float(point_coords[0]),
+            "lat": float(point_coords[1])
+        }
+        
+    if "non_veg" in place_dict:
+        place_dict["nonVeg"] = place_dict.pop("non_veg")
+        
+    place_dict["is_saved"] = user in place.saved_by_users if user else False
+    return place_dict
+
+# --- SAVED PLACES ---
+@app.post("/api/places/{place_id}/save")
+def save_place(place_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+        
+    if current_user not in place.saved_by_users:
+        place.saved_by_users.append(current_user)
+        db.commit()
+    return {"message": "Place saved successfully", "is_saved": True}
+
+@app.delete("/api/places/{place_id}/save")
+def unsave_place(place_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+        
+    if current_user in place.saved_by_users:
+        place.saved_by_users.remove(current_user)
+        db.commit()
+    return {"message": "Place removed from saved", "is_saved": False}
+
+@app.get("/api/user/saved-places")
+def get_saved_places(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Load relationships specifically
+    user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    places_list = [serialize_place(p, db, user) for p in user.saved_places]
+    return {"places": places_list}
+
+# --- REVIEWS ---
+@app.post("/api/places/{place_id}/reviews", response_model=ReviewResponse)
+def create_review(
+    place_id: int, 
+    review: ReviewCreate, 
+    current_user: models.User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+        
+    # Optional: Prevent multiple reviews per user per place
+    existing_review = db.query(models.Review).filter(
+        models.Review.user_id == current_user.id,
+        models.Review.place_id == place_id
+    ).first()
+    if existing_review:
+        raise HTTPException(status_code=400, detail="You have already reviewed this place.")
+        
+    db_review = models.Review(
+        user_id=current_user.id,
+        place_id=place_id,
+        rating=review.rating,
+        comment=review.comment
+    )
+    db.add(db_review)
+    db.commit()
+    db.refresh(db_review)
+    
+    # Return structured response matching ReviewResponse
+    db.refresh(current_user)
+    return {
+        "id": db_review.id,
+        "user_id": db_review.user_id,
+        "username": current_user.username,
+        "place_id": db_review.place_id,
+        "rating": db_review.rating,
+        "comment": db_review.comment,
+        "created_at": str(db_review.created_at)
+    }
+
+@app.get("/api/places/{place_id}/reviews", response_model=List[ReviewResponse])
+def get_place_reviews(place_id: int, db: Session = Depends(get_db)):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+        
+    reviews = db.query(models.Review).filter(models.Review.place_id == place_id).order_by(models.Review.created_at.desc()).all()
+    
+    result = []
+    for r in reviews:
+        # User is loaded since we have `user = relationship(...)` mapping in models
+        result.append({
+            "id": r.id,
+            "user_id": r.user_id,
+            "username": r.user.username,
+            "place_id": r.place_id,
+            "rating": r.rating,
+            "comment": r.comment,
+            "created_at": str(r.created_at)
+        })
+    return result
+
 @app.get("/api/places")
 async def get_places(
     lat: float, 
@@ -100,22 +235,15 @@ async def get_places(
     
     results = query.all()
     
+    
+    # Attempt to grab current_user from token (Optional auth logic for lists)
+    # The frontend shouldn't send it unless requested so we will just return place data.
     places_list = []
     for place, distance in results:
-        place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
+        place_dict = serialize_place(place, db)
         place_dict["distance"] = distance / 1000  
         
-        # Convert non_veg to nonVeg for frontend compatibility
-        if "non_veg" in place_dict:
-            place_dict["nonVeg"] = place_dict.pop("non_veg")
-        
-        point_geom = db.scalar(func.ST_AsText(place.location))
-        point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
-        
-        place_dict["location"] = {
-            "lon": float(point_coords[0]),
-            "lat": float(point_coords[1])
-        }
+
 
         places_list.append(place_dict)
 
@@ -216,20 +344,9 @@ def search_places(
     # Format results
     places_list = []
     for place in final_results:
-        place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
+        place_dict = serialize_place(place, db)
         
-        # Handle location
-        if place.location:
-            point_geom = db.scalar(func.ST_AsText(place.location))
-            point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
-            place_dict["location"] = {
-                "lon": float(point_coords[0]),
-                "lat": float(point_coords[1])
-            }
-        
-        # Handle veg/nonVeg mapping
-        if "non_veg" in place_dict:
-            place_dict["nonVeg"] = place_dict.pop("non_veg")
+
             
         places_list.append(place_dict)
         
@@ -283,20 +400,9 @@ def get_all_places(
     
     places_list = []
     for place in places:
-        place_dict = {c.name: getattr(place, c.name) for c in place.__table__.columns if c.name != 'location'}
+        place_dict = serialize_place(place, db)
         
-        # Handle location
-        if place.location:
-            point_geom = db.scalar(func.ST_AsText(place.location))
-            point_coords = point_geom.replace('POINT(', '').replace(')', '').split(' ')
-            place_dict["location"] = {
-                "lon": float(point_coords[0]),
-                "lat": float(point_coords[1])
-            }
-        
-        # Handle veg/nonVeg mapping
-        if "non_veg" in place_dict:
-            place_dict["nonVeg"] = place_dict.pop("non_veg")
+
             
         places_list.append(place_dict)
         

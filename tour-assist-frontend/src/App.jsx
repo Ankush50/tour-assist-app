@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import SavedPlaces from "./pages/SavedPlaces";
 
 // --- Icon Components (No change) ---
 const StarIcon = ({ className = "w-4 h-4" }) => (
@@ -355,6 +356,10 @@ const Navbar = ({
   theme,
   toggleTheme,
   onLoginClick,
+  isLoggedIn,
+  username,
+  onLogout,
+  navigate,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
@@ -458,16 +463,72 @@ const Navbar = ({
               {theme === "light" ? <MoonIcon /> : <SunIcon />}
             </button>
 
-            {/* Login Button */}
-            <button
-              onClick={onLoginClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-opacity-90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              <UserIcon className="w-5 h-5" />
-              <span className="font-medium hidden md:inline whitespace-nowrap">
-                Log in / Sign up
-              </span>
-            </button>
+            {/* User Profile / Login Button */}
+            {isLoggedIn ? (
+              <div className="relative group">
+                <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 shadow-sm border border-primary/20">
+                  <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold font-serif uppercase shadow-inner">
+                    {username ? username.charAt(0) : "U"}
+                  </div>
+                  <span className="font-medium hidden md:inline whitespace-nowrap pr-2">
+                    {username}
+                  </span>
+                </button>
+                {/* Dropdown menu */}
+                <div className="absolute right-0 mt-3 w-48 bg-surface rounded-xl shadow-xl border border-secondary opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-[100] before:absolute before:inset-x-0 before:h-4 before:-top-4">
+                  <div className="p-2">
+                    <button
+                      onClick={() => navigate("/saved")}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold text-text-main hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 mb-1"
+                    >
+                      <svg
+                        className="w-4 h-4 text-accent"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                        />
+                      </svg>
+                      Saved Places
+                    </button>
+                    <button
+                      onClick={onLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      Log out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={onLoginClick}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-opacity-90 text-white transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                <UserIcon className="w-5 h-5" />
+                <span className="font-medium hidden md:inline whitespace-nowrap">
+                  Log in / Sign up
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -571,6 +632,121 @@ const PlaceCard = ({ place, userLocation }) => {
 
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${place.location?.lat},${place.location?.lon}`;
 
+  // State to manage saved places visually
+  const [isSaved, setIsSaved] = useState(place.is_saved || false);
+
+  // State for Reviews
+  const [showReviews, setShowReviews] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [newReviewText, setNewReviewText] = useState("");
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const fetchReviews = async () => {
+    setLoadingReviews(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/places/${place.id}/reviews`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setReviews(data);
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const handleToggleReviews = (e) => {
+    e.preventDefault();
+    if (!showReviews && reviews.length === 0) {
+      fetchReviews();
+    }
+    setShowReviews(!showReviews);
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please log in to leave a review.");
+      return;
+    }
+
+    if (!newReviewText.trim()) {
+      alert("Please write a comment.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/places/${place.id}/reviews`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            rating: newReviewRating,
+            comment: newReviewText,
+          }),
+        },
+      );
+
+      if (response.ok) {
+        const newReview = await response.json();
+        setReviews((prev) => [newReview, ...prev]);
+        setNewReviewText("");
+        setNewReviewRating(5);
+      } else {
+        const err = await response.json();
+        alert(err.detail || "Error submitting review.");
+      }
+    } catch (error) {
+      console.error("Failed to submit review:", error);
+      alert("Failed to submit review. Try again later.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const toggleSave = async (e) => {
+    e.preventDefault(); // Prevent link navigation
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please log in to save places!");
+      return;
+    }
+
+    // Optimistic UI Update
+    const newSaveState = !isSaved;
+    setIsSaved(newSaveState);
+
+    try {
+      const url = `${API_BASE_URL}/api/places/${place.id}/save`;
+      const method = newSaveState ? "POST" : "DELETE";
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update saved status");
+      }
+    } catch (error) {
+      console.error("Error saving place:", error);
+      alert("Failed to save place. Please try again later.");
+      setIsSaved(!newSaveState); // Revert UI
+    }
+  };
+
   return (
     <a
       href={place.location ? googleMapsUrl : "#"}
@@ -579,9 +755,9 @@ const PlaceCard = ({ place, userLocation }) => {
       title={
         place.location ? "Click to get directions" : "Location not available"
       }
-      className={`block ${!place.location ? "cursor-not-allowed" : ""}`}
+      className={`block relative ${!place.location ? "cursor-not-allowed" : ""} h-full`}
     >
-      <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02]">
+      <div className="bg-surface rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full">
         <div className="relative">
           <img
             className="aspect-[16/9] w-full object-cover"
@@ -600,7 +776,7 @@ const PlaceCard = ({ place, userLocation }) => {
           />
           {place.rating && (
             <div
-              className={`absolute top-2 right-2 px-2 py-1 rounded-md text-white text-sm font-bold ${getRatingColor(place.rating)}`}
+              className={`absolute top-2 left-2 px-2 py-1 rounded-md text-white text-sm font-bold shadow-md ${getRatingColor(place.rating)}`}
             >
               <div className="flex items-center gap-1">
                 <span>{place.rating}</span>
@@ -608,6 +784,26 @@ const PlaceCard = ({ place, userLocation }) => {
               </div>
             </div>
           )}
+
+          {/* HEART ICON FOR SAVING */}
+          <button
+            onClick={toggleSave}
+            title={isSaved ? "Remove from Saved Places" : "Save this Place"}
+            className="absolute top-2 right-2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 shadow-md backdrop-blur-sm transition-all duration-300 transform hover:scale-110 z-10"
+          >
+            <svg
+              className={`w-5 h-5 transition-colors ${isSaved ? "text-red-500 fill-current" : "fill-none"}`}
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={isSaved ? 0 : 2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          </button>
         </div>
         <div className="p-4">
           <div className="flex justify-between items-start mb-1">
@@ -655,11 +851,136 @@ const PlaceCard = ({ place, userLocation }) => {
           </div>
 
           <p
-            className="text-sm text-gray-500 truncate"
+            className="text-sm text-gray-500 line-clamp-2 mt-auto min-h-[40px]"
             title={place.description}
           >
             {place.description}
           </p>
+
+          {/* REVIEWS TOGGLE BUTTON */}
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <button
+              onClick={handleToggleReviews}
+              className="text-sm text-primary font-semibold hover:text-accent transition-colors flex items-center gap-1 w-full justify-center"
+            >
+              {showReviews ? "Hide Reviews" : "Read / Write Reviews"}
+              <svg
+                className={`w-4 h-4 transform transition-transform ${showReviews ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* REVIEWS SECTION */}
+          {showReviews && (
+            <div
+              className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 cursor-default"
+              onClick={(e) => e.preventDefault()}
+            >
+              {/* Review Form */}
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-text-main mb-2">
+                  Leave a Review
+                </h4>
+                {!localStorage.getItem("token") ? (
+                  <p className="text-xs text-gray-500 italic">
+                    Please log in to leave a review.
+                  </p>
+                ) : (
+                  <form
+                    onSubmit={handleSubmitReview}
+                    className="flex flex-col gap-2"
+                  >
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setNewReviewRating(star);
+                          }}
+                          className={`focus:outline-none ${star <= newReviewRating ? "text-yellow-400" : "text-gray-300"}`}
+                        >
+                          <StarIcon className="w-5 h-5 fill-current" />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={newReviewText}
+                      onChange={(e) => setNewReviewText(e.target.value)}
+                      placeholder="Share your experience..."
+                      className="w-full text-sm p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-text-main focus:ring-1 focus:ring-primary outline-none resize-none"
+                      rows="2"
+                      required
+                    ></textarea>
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="self-end px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-md hover:bg-opacity-90 transition-colors disabled:opacity-50"
+                    >
+                      {submittingReview ? "Posting..." : "Post Review"}
+                    </button>
+                  </form>
+                )}
+              </div>
+
+              {/* Reviews List */}
+              <div>
+                <h4 className="text-sm font-bold text-text-main mb-3 border-b border-gray-200 dark:border-gray-700 pb-1">
+                  Public Reviews
+                </h4>
+                {loadingReviews ? (
+                  <div className="flex justify-center p-4">
+                    <SearchingDots className="w-1.5 h-1.5" />
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic text-center py-2">
+                    No reviews yet. Be the first!
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-4 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                    {reviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="bg-white dark:bg-gray-900 p-3 rounded-md shadow-sm border border-gray-100 dark:border-gray-800"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-xs font-bold text-primary">
+                            {review.username}
+                          </span>
+                          <div className="flex items-center text-yellow-400">
+                            <span className="text-[10px] text-gray-500 mr-1">
+                              {review.rating}
+                            </span>
+                            <StarIcon className="w-2.5 h-2.5 fill-current" />
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {review.comment}
+                        </p>
+                        <span className="text-[9px] text-gray-400 block mt-2">
+                          {new Date(review.created_at).toLocaleDateString(
+                            undefined,
+                            { year: "numeric", month: "short", day: "numeric" },
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </a>
@@ -684,6 +1005,25 @@ function Home() {
 
   // --- ADDED FOR NAVIGATION ---
   const [userLocation, setUserLocation] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUsername = localStorage.getItem("username");
+    if (token && storedUsername) {
+      setIsLoggedIn(true);
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    setIsLoggedIn(false);
+    setUsername("");
+    navigate("/");
+  };
 
   // --- Theme State ---
   const [theme, setTheme] = useState(() => {
@@ -959,6 +1299,10 @@ function Home() {
         theme={theme}
         toggleTheme={toggleTheme}
         onLoginClick={() => navigate("/login")}
+        isLoggedIn={isLoggedIn}
+        username={username}
+        onLogout={handleLogout}
+        navigate={navigate}
       />
 
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
@@ -1121,6 +1465,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/saved" element={<SavedPlaces />} />
       </Routes>
     </BrowserRouter>
   );
