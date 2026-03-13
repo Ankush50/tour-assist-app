@@ -886,10 +886,7 @@ const PlaceCard = ({ place, userLocation }) => {
 
         {/* REVIEWS SECTION */}
         {showReviews && (
-          <div
-            className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 cursor-default"
-            onClick={(e) => e.preventDefault()}
-          >
+          <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
             {/* Review Form */}
             <div className="mb-6">
               <h4 className="text-sm font-bold text-text-main mb-2">
@@ -1290,7 +1287,7 @@ function Home() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-background relative font-sans text-text-main flex flex-col items-center">
+    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
       <BackgroundDoodles />
 
       {/* Navbar Wrapper to match centering flow since App is flex-col items-center but Navbar wants 100% */}
