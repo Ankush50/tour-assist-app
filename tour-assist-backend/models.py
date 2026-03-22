@@ -69,6 +69,8 @@ class AIChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    session_id = Column(String, index=True)
+    chat_name = Column(String, nullable=True)
     role = Column(String) # 'user' or 'model'/'assistant'
     content = Column(Text)
     places_json = Column(Text, nullable=True) # serialized places if any

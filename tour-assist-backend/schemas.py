@@ -62,9 +62,11 @@ class AIContextRequest(BaseModel):
     history: list[Message]
     filters: dict
     budget: list[int]
+    session_id: str
 
 class AIChatMessageResponse(BaseModel):
     id: int
+    session_id: str | None
     role: str
     content: str
     places_json: str | None
@@ -72,3 +74,11 @@ class AIChatMessageResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AIChatSessionResponse(BaseModel):
+    session_id: str
+    chat_name: str
+    created_at: datetime
+
+class ChatRenameRequest(BaseModel):
+    chat_name: str

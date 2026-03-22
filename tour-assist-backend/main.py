@@ -26,8 +26,16 @@ import json
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # -------------------------------------------------
 
+from sqlalchemy import text
 # This creates the 'places' table if it doesn't exist
 models.Base.metadata.create_all(bind=engine)
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE ai_chat_messages ADD COLUMN session_id VARCHAR;"))
+        conn.execute(text("ALTER TABLE ai_chat_messages ADD COLUMN chat_name VARCHAR;"))
+        conn.commit()
+except Exception:
+    pass # columns likely already exist
 
 app = FastAPI()
 
@@ -417,17 +425,50 @@ def get_all_places(
 
 
 # --- AI ASSISTANT ENDPOINT ---
-from schemas import AIContextRequest, AIChatMessageResponse
+from schemas import AIContextRequest, AIChatMessageResponse, AIChatSessionResponse, ChatRenameRequest
 
-@app.get("/api/ai/history", response_model=list[AIChatMessageResponse])
+@app.get("/api/ai/history", response_model=list[AIChatSessionResponse])
 async def get_ai_history(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Group by session_id to get unique chat threads
+    sessions = db.query(
+        models.AIChatMessage.session_id,
+        func.max(models.AIChatMessage.chat_name).label("chat_name"),
+        func.min(models.AIChatMessage.created_at).label("created_at")
+    ).filter(
+        models.AIChatMessage.user_id == current_user.id,
+        models.AIChatMessage.session_id != None
+    ).group_by(models.AIChatMessage.session_id).order_by(func.min(models.AIChatMessage.created_at).desc()).all()
+    
+    return [{"session_id": s.session_id, "chat_name": s.chat_name or "New Chat", "created_at": s.created_at} for s in sessions]
+
+@app.get("/api/ai/history/{session_id}", response_model=list[AIChatMessageResponse])
+async def get_ai_session_history(
+    session_id: str,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
     messages = db.query(models.AIChatMessage).filter(
-        models.AIChatMessage.user_id == current_user.id
+        models.AIChatMessage.user_id == current_user.id,
+        models.AIChatMessage.session_id == session_id
     ).order_by(models.AIChatMessage.created_at.asc()).all()
     return messages
+
+@app.put("/api/ai/history/{session_id}", response_model=dict)
+async def rename_ai_session(
+    session_id: str,
+    req: ChatRenameRequest,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    db.query(models.AIChatMessage).filter(
+        models.AIChatMessage.user_id == current_user.id,
+        models.AIChatMessage.session_id == session_id
+    ).update({"chat_name": req.chat_name})
+    db.commit()
+    return {"message": "success"}
 
 @app.post("/api/ai/suggest")
 async def ai_suggest(
@@ -521,11 +562,19 @@ So we can fetch relevant places to show in the UI. Keep your text response short
                 places.append(serialize_place(place, db))
                 
         # 8. Save to history if logged in
-        if current_user and request.history:
-            # Save user's last message
+        if current_user and request.history and request.session_id:
+            # Check if this is a new session
+            existing = db.query(models.AIChatMessage).filter(
+                models.AIChatMessage.session_id == request.session_id
+            ).first()
+            
+            chat_name = existing.chat_name if existing else request.history[0].content[:25] + "..."
+            
             last_user_msg = request.history[-1].content if request.history else "Hello!"
             db_user_msg = models.AIChatMessage(
                 user_id=current_user.id,
+                session_id=request.session_id,
+                chat_name=chat_name,
                 role="user",
                 content=last_user_msg,
                 places_json=None
@@ -533,6 +582,8 @@ So we can fetch relevant places to show in the UI. Keep your text response short
             # Save AI's response
             db_ai_msg = models.AIChatMessage(
                 user_id=current_user.id,
+                session_id=request.session_id,
+                chat_name=chat_name,
                 role="assistant",
                 content=reply_text,
                 places_json=json.dumps(jsonable_encoder(places)) if places else None

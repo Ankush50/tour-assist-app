@@ -31,6 +31,12 @@ const PlusIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const EditIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+  </svg>
+);
+
 // We leverage the simplest logic for API URL so this component is portable
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -47,6 +53,11 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState(() => crypto.randomUUID());
+  const [showHistoryList, setShowHistoryList] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editChatName, setEditChatName] = useState("");
   const messagesEndRef = useRef(null);
 
   // Initialize with greeting
@@ -64,7 +75,7 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const fetchHistory = async () => {
+  const fetchHistoryList = async () => {
     if (isLoading) return;
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -76,26 +87,74 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
       });
       if (response.ok) {
         const data = await response.json();
-        const formattedHistory = data.map(msg => ({
-          role: msg.role === 'model' ? 'assistant' : msg.role,
-          content: msg.content,
-          places: msg.places_json ? JSON.parse(msg.places_json) : []
-        }));
-        if (formattedHistory.length > 0) {
-           setMessages(formattedHistory);
-        }
+        setHistoryList(data);
+        setShowHistoryList(prev => !prev);
       }
     } catch (err) {
-      console.error("Failed to load history", err);
+      console.error("Failed to load history list", err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const loadSessionHistory = async (sessionId) => {
+    if (isLoading) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/history/${sessionId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formattedHistory = data.map(msg => ({
+          role: msg.role === 'model' ? 'assistant' : msg.role,
+          content: msg.content,
+          places: msg.places_json ? JSON.parse(msg.places_json) : []
+        }));
+        setMessages(formattedHistory);
+        setCurrentSessionId(sessionId);
+        setShowHistoryList(false);
+      }
+    } catch (err) {
+      console.error("Failed to load session", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renameSession = async (sessionId) => {
+    const token = localStorage.getItem("token");
+    if (!token || !editChatName.trim()) {
+      setEditingSessionId(null);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/history/${sessionId}`, {
+        method: "PUT",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ chat_name: editChatName })
+      });
+      if (response.ok) {
+        setHistoryList(prev => prev.map(s => s.session_id === sessionId ? { ...s, chat_name: editChatName } : s));
+      }
+    } catch (err) {
+      console.error("Failed to rename session", err);
+    } finally {
+      setEditingSessionId(null);
+    }
+  };
+
   const startNewChat = () => {
     setMessages([]);
-    // Handled intrinsically by the useEffect that triggers when messages.length === 0,
-    // but we can manually invoke it to be safe in case user closes directly.
+    setCurrentSessionId(crypto.randomUUID());
+    setShowHistoryList(false);
     sendAIRequest([{ role: "user", content: "Say a short, friendly hello and suggest something broadly based on my filters!" }]);
   };
 
@@ -111,7 +170,8 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
         body: JSON.stringify({
           history: chatHistory,
           filters: filters || {},
-          budget: []
+          budget: [],
+          session_id: currentSessionId
         })
       });
 
@@ -170,10 +230,10 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
               </button>
               {localStorage.getItem("token") && (
                 <button 
-                  onClick={fetchHistory} 
-                  title="Load Chat History"
+                  onClick={fetchHistoryList} 
+                  title="Toggle Chat History"
                   disabled={isLoading}
-                  className={`p-1.5 rounded-full transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/20'}`}
+                  className={`p-1.5 rounded-full transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : (showHistoryList ? 'bg-white/30' : 'hover:bg-white/20')}`}
                 >
                   <HistoryIcon />
                 </button>
@@ -188,60 +248,102 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
             </div>
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
-            {messages.filter(m => !(m.role === 'user' && m.content.includes("Say a short, friendly hello"))).map((msg, idx) => (
-              <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-white rounded-br-none' 
-                    : 'bg-surface border border-secondary text-text-main rounded-bl-none'
-                }`}>
-                  {msg.content}
-                </div>
-                
-                {/* Render suggested places directly in chat! */}
-                {msg.places && msg.places.length > 0 && PlaceCardComponent && (
-                  <div className="mt-3 flex flex-col gap-3 w-full max-w-[95%]">
-                    {msg.places.map((place, pIdx) => (
-                      <div key={pIdx} className="w-full transform transition-transform hover:scale-[1.02]">
-                        <PlaceCardComponent place={place} userLocation={userLocation} priority={false} />
-                      </div>
-                    ))}
+          {/* Messages or History List Area */}
+          {showHistoryList ? (
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scrollbar">
+              <h4 className="font-bold text-lg mb-2 text-text-main flex items-center justify-between">
+                Past Chats
+              </h4>
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                {historyList.length === 0 && <p className="text-sm opacity-60">No past chats found.</p>}
+                {historyList.map(session => (
+                  <div key={session.session_id} className="bg-surface border border-secondary p-3 rounded-xl flex justify-between items-center hover:shadow-md cursor-pointer transition-all border-l-4 hover:border-l-primary" 
+                       onClick={() => editingSessionId !== session.session_id && loadSessionHistory(session.session_id)}>
+                    <div className="flex-1 mr-2 overflow-hidden">
+                      {editingSessionId === session.session_id ? (
+                        <input 
+                          className="w-full bg-transparent border-b border-primary focus:outline-none text-text-main font-semibold"
+                          value={editChatName}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => setEditChatName(e.target.value)}
+                          onBlur={() => renameSession(session.session_id)}
+                          onKeyDown={(e) => e.key === 'Enter' && renameSession(session.session_id)}
+                        />
+                      ) : (
+                        <span className="font-bold text-text-main block truncate text-sm mb-1">{session.chat_name}</span>
+                      )}
+                      <span className="block text-[10px] text-gray-500 font-medium">
+                        {new Date(session.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setEditChatName(session.chat_name); setEditingSessionId(session.session_id); }}
+                      className="p-2 opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors shrink-0"
+                    >
+                      <EditIcon className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex items-start">
-                <div className="bg-surface border border-secondary text-text-main px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1 items-center">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-secondary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+              {messages.filter(m => !(m.role === 'user' && m.content.includes("Say a short, friendly hello"))).map((msg, idx) => (
+                <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
+                    msg.role === 'user' 
+                      ? 'bg-primary text-white rounded-br-none' 
+                      : 'bg-surface border border-secondary text-text-main rounded-bl-none'
+                  }`}>
+                    {msg.content}
+                  </div>
+                  
+                  {/* Render suggested places directly in chat! */}
+                  {msg.places && msg.places.length > 0 && PlaceCardComponent && (
+                    <div className="mt-3 flex flex-col gap-3 w-full max-w-[95%]">
+                      {msg.places.map((place, pIdx) => (
+                        <div key={pIdx} className="w-full transform transition-transform hover:scale-[1.02]">
+                          <PlaceCardComponent place={place} userLocation={userLocation} priority={false} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex items-start">
+                  <div className="bg-surface border border-secondary text-text-main px-4 py-3 rounded-2xl rounded-bl-none shadow-sm flex gap-1 items-center">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-secondary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
 
-          {/* Input Area */}
-          <form onSubmit={handleSend} className="p-3 bg-surface border-t border-secondary/50 flex gap-2">
-            <input 
-              type="text" 
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Ask for recommendations..." 
-              className="flex-1 bg-transparent border border-gray-300 dark:border-gray-600 rounded-full px-4 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-            />
-            <button 
-              type="submit" 
-              disabled={!inputText.trim() || isLoading}
-              className="bg-primary hover:bg-opacity-90 disabled:opacity-50 text-white p-2.5 rounded-full transition-colors flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95"
-            >
-              <SendIcon className="w-4 h-4" />
-            </button>
-          </form>
+          {/* Input Area (hide when viewing history list) */}
+          {!showHistoryList && (
+            <form onSubmit={handleSend} className="p-3 bg-surface border-t border-secondary/50 flex gap-2">
+              <input 
+                type="text" 
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Ask for recommendations..." 
+                className="flex-1 bg-transparent border border-gray-300 dark:border-gray-600 rounded-full px-4 text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
+              <button 
+                type="submit" 
+                disabled={!inputText.trim() || isLoading}
+                className="bg-primary hover:bg-opacity-90 disabled:opacity-50 text-white p-2.5 rounded-full transition-colors flex items-center justify-center shadow-md transform hover:scale-105 active:scale-95"
+              >
+                <SendIcon className="w-4 h-4" />
+              </button>
+            </form>
+          )}
         </div>
       )}
 
