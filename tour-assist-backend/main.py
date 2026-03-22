@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast
 from geoalchemy2 import Geography
@@ -534,7 +535,7 @@ So we can fetch relevant places to show in the UI. Keep your text response short
                 user_id=current_user.id,
                 role="assistant",
                 content=reply_text,
-                places_json=json.dumps(places) if places else None
+                places_json=json.dumps(jsonable_encoder(places)) if places else None
             )
             db.add(db_user_msg)
             db.add(db_ai_msg)

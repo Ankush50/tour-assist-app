@@ -65,6 +65,7 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
   }, [messages, isLoading]);
 
   const fetchHistory = async () => {
+    if (isLoading) return;
     const token = localStorage.getItem("token");
     if (!token) return;
     
@@ -162,7 +163,8 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
               <button 
                 onClick={startNewChat} 
                 title="New Chat"
-                className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+                disabled={isLoading}
+                className={`p-1.5 rounded-full transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/20'}`}
               >
                 <PlusIcon />
               </button>
@@ -170,7 +172,8 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
                 <button 
                   onClick={fetchHistory} 
                   title="Load Chat History"
-                  className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+                  disabled={isLoading}
+                  className={`p-1.5 rounded-full transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/20'}`}
                 >
                   <HistoryIcon />
                 </button>
