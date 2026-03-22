@@ -52,3 +52,12 @@ class PlaceResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class AIContextRequest(BaseModel):
+    history: list[Message]
+    filters: dict
+    budget: list[int]
