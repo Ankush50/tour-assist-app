@@ -421,7 +421,6 @@ from schemas import AIContextRequest
 @app.post("/api/ai/suggest")
 async def ai_suggest(
     request: AIContextRequest,
-    current_user: Optional[models.User] = Depends(auth.get_current_user_optional) if hasattr(auth, 'get_current_user_optional') else None,
     db: Session = Depends(get_db)
 ):
     """

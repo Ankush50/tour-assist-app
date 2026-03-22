@@ -100,7 +100,7 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-4 w-[90vw] sm:w-[380px] h-[500px] max-h-[70vh] bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/40 dark:border-gray-700/50 shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-fade-in-up transition-all duration-300">
+        <div className="mb-4 w-[calc(100vw-3rem)] sm:w-[380px] h-[500px] max-h-[70vh] bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-white/40 dark:border-gray-700/50 shadow-2xl rounded-2xl flex flex-col overflow-hidden animate-fade-in-up transition-all duration-300">
           
           {/* Header */}
           <div className="bg-gradient-to-r from-primary to-accent p-4 text-white flex justify-between items-center shadow-md">

@@ -399,9 +399,9 @@ const Navbar = ({
   return (
     <nav className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-white/20 dark:border-gray-700/50 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 md:gap-6">
           {/* Branding - Top Left */}
-          <div className="flex items-center gap-2 group cursor-pointer">
+          <div className="flex items-center gap-2 group cursor-pointer shrink-0">
             <h1 className="text-2xl md:text-3xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-flow animate-breathing">
               Odyssey
             </h1>
@@ -410,8 +410,8 @@ const Navbar = ({
             </span>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl relative">
+          {/* Search Bar - Full width on Mobile (order 3), Center on Desktop (order 2) */}
+          <div className="w-full md:w-auto md:flex-1 max-w-2xl relative order-3 md:order-2">
             <div className="relative">
               <input
                 type="text"
@@ -442,7 +442,8 @@ const Navbar = ({
             />
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Actions - Top Right on Mobile, Right on Desktop */}
+          <div className="flex items-center gap-2 md:gap-3 order-2 md:order-3 shrink-0">
             {/* Install App Button */}
             <button
               onClick={handleInstallClick}
@@ -1308,9 +1309,10 @@ function Home() {
   }, [allPlaces, filters]);
 
   return (
-    <div className="min-h-screen bg-transparent relative font-sans text-text-main flex flex-col items-center">
-      <BackgroundDoodles />
-
+    <div className="min-h-screen bg-background text-text-main font-sans flex flex-col relative overflow-x-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-30 dark:opacity-20">
+        <BackgroundDoodles />
+      </div>
       {/* Navbar Wrapper to match centering flow since App is flex-col items-center but Navbar wants 100% */}
       <div className="w-full">
         <Navbar
