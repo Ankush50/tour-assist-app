@@ -450,14 +450,22 @@ If you decide to recommend a specific theoretical place, format your recommendat
 So we can fetch relevant places to show in the UI. Keep your text response short (2-3 sentences max).
 """
 
-        # 3. Setup Model
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=system_instructions
-        )
-        
+        # 3. Setup Model - using -latest as some older pips/regions throw 404 on base flash
+        try:
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash-latest",
+                system_instruction=system_instructions
+            )
+            # Try to start chat to verify model exists
+            chat = model.start_chat(history=[])
+        except Exception:
+            # Fallback to gemini-pro if flash is unavailable in this region/key
+            model = genai.GenerativeModel(
+                model_name="gemini-pro"
+            )
+            chat = model.start_chat(history=[])
+            
         # 4. Convert history to Generative AI format
-        chat = model.start_chat(history=[])
         for msg in request.history[:-1]:
             # map 'user' -> 'user', 'assistant' -> 'model'
             role = "user" if msg.role == "user" else "model"
