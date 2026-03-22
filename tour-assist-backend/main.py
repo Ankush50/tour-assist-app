@@ -450,18 +450,18 @@ If you decide to recommend a specific theoretical place, format your recommendat
 So we can fetch relevant places to show in the UI. Keep your text response short (2-3 sentences max).
 """
 
-        # 3. Setup Model - using -latest as some older pips/regions throw 404 on base flash
+        # 3. Setup Model - using gemini-flash-latest since older versions are defunct.
         try:
             model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash-latest",
+                model_name="gemini-flash-latest",
                 system_instruction=system_instructions
             )
             # Try to start chat to verify model exists
             chat = model.start_chat(history=[])
         except Exception:
-            # Fallback to gemini-pro if flash is unavailable in this region/key
+            # Fallback to gemini-pro-latest
             model = genai.GenerativeModel(
-                model_name="gemini-pro"
+                model_name="gemini-pro-latest"
             )
             chat = model.start_chat(history=[])
             
