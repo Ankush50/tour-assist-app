@@ -15,8 +15,14 @@ from schemas import PlaceCreateRequest, UserCreate, UserLogin, Token, ReviewCrea
 from utils import get_location_from_address
 import auth
 import difflib
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import timedelta, datetime
+import os
+import google.generativeai as genai
+import json
+
+# Configure Gemini
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 # -------------------------------------------------
 
 # This creates the 'places' table if it doesn't exist
@@ -408,6 +414,101 @@ def get_all_places(
         
     return {"places": places_list}
 
+
+# --- AI ASSISTANT ENDPOINT ---
+from schemas import AIContextRequest
+
+@app.post("/api/ai/suggest")
+async def ai_suggest(
+    request: AIContextRequest,
+    current_user: Optional[models.User] = Depends(auth.get_current_user_optional) if hasattr(auth, 'get_current_user_optional') else None,
+    db: Session = Depends(get_db)
+):
+    """
+    Proactively suggests places using Gemini AI based on context.
+    """
+    try:
+        # 1. Gather User Context
+        saved_places_text = ""
+        # If we have an auth user extraction logic we can include it.
+        # Right now we'll just rely on the frontend sending context.
+        
+        filters_text = json.dumps(request.filters)
+        
+        # 2. Construct System Prompt
+        system_instructions = f"""
+You are Odyssey AI, a friendly and enthusiastic travel assistant for the Tour Assist app.
+Your tone should be welcoming, engaging, and brief. Use emojis appropriately.
+
+The user currently has these filters active in the app: {filters_text}
+
+When suggesting places, strictly rely ONLY on the places provided natively by the app (we will search them). 
+Currently, you don't know the exact database IDs perfectly, so just suggest place names and categories natively available like "momos", "hotels", "restaurants".
+If you decide to recommend a specific theoretical place, format your recommendation text freely but output a JSON block at the very end of your response like this: 
+```json
+{{"search_query": "momo"}}
+```
+So we can fetch relevant places to show in the UI. Keep your text response short (2-3 sentences max).
+"""
+
+        # 3. Setup Model
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=system_instructions
+        )
+        
+        # 4. Convert history to Generative AI format
+        chat = model.start_chat(history=[])
+        for msg in request.history[:-1]:
+            # map 'user' -> 'user', 'assistant' -> 'model'
+            role = "user" if msg.role == "user" else "model"
+            chat.history.append({"role": role, "parts": [msg.content]})
+            
+        # 5. Send message
+        latest_msg = request.history[-1].content if request.history else "Hello!"
+        response = chat.send_message(latest_msg)
+        
+        reply_text = response.text
+        
+        # 6. Extract JSON search_query if present
+        search_query = None
+        places = []
+        import re
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', reply_text, re.DOTALL)
+        if json_match:
+            try:
+                data = json.loads(json_match.group(1))
+                search_query = data.get("search_query")
+                reply_text = reply_text[:json_match.start()].strip() # Remove JSON from text
+            except Exception:
+                pass
+                
+        # 7. Fetch associated places if a query was generated
+        if search_query:
+            # Fuzzy search using existing logic
+            all_places = db.query(models.Place).all()
+            exact_matches = [p for p in all_places if search_query.lower() in p.name.lower() or (p.address and search_query.lower() in p.address.lower())]
+            other_places = [p for p in all_places if p not in exact_matches]
+            name_map = {p.name: p for p in other_places}
+            matches = difflib.get_close_matches(search_query, list(name_map.keys()), n=3, cutoff=0.5)
+            fuzzy_matches = [name_map[m] for m in matches]
+            final_results = exact_matches + fuzzy_matches
+            
+            # Serialize
+            for place in final_results[:3]: # Limit to 3 places max
+                places.append(serialize_place(place, db))
+                
+        return {
+            "reply": reply_text,
+            "places": places
+        }
+        
+    except Exception as e:
+        print(f"AI Suggestion Error: {e}")
+        return {
+            "reply": "I'm having a little trouble connecting right now, but I'm still here to help! What kind of place are you looking for?",
+            "places": []
+        }
 
 if __name__ == "__main__":
     # Use 0.0.0.0 to accept connections from all interfaces (including localhost)

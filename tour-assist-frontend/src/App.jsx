@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SavedPlaces from "./pages/SavedPlaces";
 import BackgroundDoodles from "./components/BackgroundDoodles";
+import AIAssistant from "./components/AIAssistant";
 
 // --- Icon Components (No change) ---
 const StarIcon = ({ className = "w-4 h-4" }) => (
@@ -586,8 +587,26 @@ function deg2rad(deg) {
   return deg * (Math.PI / 180);
 }
 
+// --- Zomato-Style Card Skeleton Component ---
+const PlaceCardSkeleton = () => (
+  <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg flex flex-col h-[400px]">
+    <div className="w-full aspect-[16/9] bg-gray-300 dark:bg-gray-700 animate-pulse" />
+    <div className="p-4 flex flex-col flex-grow">
+      <div className="flex justify-between items-start mb-2 mt-1">
+        <div className="h-6 w-2/3 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="h-5 w-16 bg-gray-300 dark:bg-gray-700 rounded-full animate-pulse" />
+      </div>
+      <div className="h-4 w-1/4 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-4" />
+      <div className="h-3 w-1/2 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mb-3" />
+      
+      <div className="h-4 w-full bg-gray-300 dark:bg-gray-700 rounded animate-pulse mt-auto" />
+      <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-700 rounded animate-pulse mt-2" />
+    </div>
+  </div>
+);
+
 // --- Zomato-Style Card Component ---
-const PlaceCard = ({ place, userLocation }) => {
+const PlaceCard = ({ place, userLocation, priority = false }) => {
   const formatPrice = (price) => {
     if (!price) return null;
 
@@ -766,6 +785,8 @@ const PlaceCard = ({ place, userLocation }) => {
             className="aspect-[16/9] w-full object-cover"
             src={place.image_url || getFallbackImage(place.type, place.name)}
             alt={place.name}
+            fetchpriority={priority ? "high" : "auto"}
+            loading={priority ? "eager" : "lazy"}
             onError={(e) => {
               const fallback = getFallbackImage(place.type, place.name);
               if (e.target.src !== fallback) {
@@ -1433,8 +1454,10 @@ function Home() {
 
         <div>
           {loading && (
-            <div className="flex justify-center items-center py-20">
-              <SearchingDots className="w-4 h-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <PlaceCardSkeleton key={i} />
+              ))}
             </div>
           )}
 
@@ -1444,11 +1467,12 @@ function Home() {
 
           {!loading && filteredResults.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResults.map((place) => (
+              {filteredResults.map((place, index) => (
                 <PlaceCard
                   key={place.id}
                   place={place}
                   userLocation={userLocation}
+                  priority={index < 4}
                 />
               ))}
             </div>
@@ -1460,6 +1484,12 @@ function Home() {
       <div className="w-full mt-auto">
         <Footer />
       </div>
+
+      <AIAssistant 
+        filters={filters} 
+        userLocation={userLocation} 
+        PlaceCardComponent={PlaceCard} 
+      />
     </div>
   );
 }
