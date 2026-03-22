@@ -252,7 +252,14 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
           {showHistoryList ? (
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 custom-scrollbar">
               <h4 className="font-bold text-lg mb-2 text-text-main flex items-center justify-between">
-                Past Chats
+                <span>Past Chats</span>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowHistoryList(false); }}
+                  title="Close History"
+                  className="p-1 opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <CloseIcon className="w-4 h-4" />
+                </button>
               </h4>
               <div className="flex-1 overflow-y-auto pr-2 space-y-3">
                 {historyList.length === 0 && <p className="text-sm opacity-60">No past chats found.</p>}
