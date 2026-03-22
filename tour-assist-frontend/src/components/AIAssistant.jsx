@@ -19,6 +19,18 @@ const SendIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const HistoryIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const PlusIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+  </svg>
+);
+
 // We leverage the simplest logic for API URL so this component is portable
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -51,6 +63,40 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const fetchHistory = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/history`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const formattedHistory = data.map(msg => ({
+          role: msg.role === 'model' ? 'assistant' : msg.role,
+          content: msg.content,
+          places: msg.places_json ? JSON.parse(msg.places_json) : []
+        }));
+        if (formattedHistory.length > 0) {
+           setMessages(formattedHistory);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load history", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startNewChat = () => {
+    setMessages([]);
+    // Handled intrinsically by the useEffect that triggers when messages.length === 0,
+    // but we can manually invoke it to be safe in case user closes directly.
+    sendAIRequest([{ role: "user", content: "Say a short, friendly hello and suggest something broadly based on my filters!" }]);
+  };
 
   const sendAIRequest = async (chatHistory) => {
     setIsLoading(true);
@@ -111,9 +157,32 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
                 <p className="text-[10px] opacity-80 uppercase tracking-wider font-semibold">Proactive Assistant</p>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition-colors">
-              <CloseIcon />
-            </button>
+            
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={startNewChat} 
+                title="New Chat"
+                className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+              >
+                <PlusIcon />
+              </button>
+              {localStorage.getItem("token") && (
+                <button 
+                  onClick={fetchHistory} 
+                  title="Load Chat History"
+                  className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+                >
+                  <HistoryIcon />
+                </button>
+              )}
+              <button 
+                onClick={() => setIsOpen(false)} 
+                title="Close"
+                className="hover:bg-white/20 p-1.5 rounded-full transition-colors"
+              >
+                <CloseIcon />
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}

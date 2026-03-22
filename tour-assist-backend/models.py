@@ -63,3 +63,15 @@ class Review(Base):
     # Relationships
     user = relationship("User", back_populates="reviews")
     place = relationship("Place", back_populates="reviews")
+
+class AIChatMessage(Base):
+    __tablename__ = "ai_chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    role = Column(String) # 'user' or 'model'/'assistant'
+    content = Column(Text)
+    places_json = Column(Text, nullable=True) # serialized places if any
+    created_at = Column(DateTime, default=func.now())
+
+    user = relationship("User")

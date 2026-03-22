@@ -364,6 +364,7 @@ const Navbar = ({
   navigate,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e) => {
@@ -469,7 +470,11 @@ const Navbar = ({
             {/* User Profile / Login Button */}
             {isLoggedIn ? (
               <div className="relative group">
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 shadow-sm border border-primary/20">
+                <button 
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  onBlur={() => setTimeout(() => setIsProfileOpen(false), 200)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-300 shadow-sm border border-primary/20"
+                >
                   <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold font-serif uppercase shadow-inner">
                     {username ? username.charAt(0) : "U"}
                   </div>
@@ -478,7 +483,9 @@ const Navbar = ({
                   </span>
                 </button>
                 {/* Dropdown menu */}
-                <div className="absolute right-0 mt-3 w-48 bg-surface rounded-xl shadow-xl border border-secondary opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform group-hover:translate-y-0 translate-y-2 z-[100] before:absolute before:inset-x-0 before:h-4 before:-top-4">
+                <div className={`absolute right-0 mt-3 w-48 bg-surface rounded-xl shadow-xl border border-secondary transition-all duration-300 transform z-[100] before:absolute before:inset-x-0 before:h-4 before:-top-4 ${
+                  isProfileOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible translate-y-2'
+                }`}>
                   <div className="p-2">
                     <button
                       onClick={() => navigate("/saved")}

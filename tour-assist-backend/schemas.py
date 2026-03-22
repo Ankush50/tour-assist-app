@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 
 class PlaceCreateRequest(BaseModel):
     name: str
@@ -61,3 +62,13 @@ class AIContextRequest(BaseModel):
     history: list[Message]
     filters: dict
     budget: list[int]
+
+class AIChatMessageResponse(BaseModel):
+    id: int
+    role: str
+    content: str
+    places_json: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

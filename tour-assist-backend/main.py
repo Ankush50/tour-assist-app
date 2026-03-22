@@ -416,17 +416,31 @@ def get_all_places(
 
 
 # --- AI ASSISTANT ENDPOINT ---
-from schemas import AIContextRequest
+from schemas import AIContextRequest, AIChatMessageResponse
+
+@app.get("/api/ai/history", response_model=list[AIChatMessageResponse])
+async def get_ai_history(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    messages = db.query(models.AIChatMessage).filter(
+        models.AIChatMessage.user_id == current_user.id
+    ).order_by(models.AIChatMessage.created_at.asc()).all()
+    return messages
 
 @app.post("/api/ai/suggest")
 async def ai_suggest(
     request: AIContextRequest,
+    req: Request,
     db: Session = Depends(get_db)
 ):
     """
     Proactively suggests places using Gemini AI based on context.
+    Optionally saves history if user is authenticated.
     """
     try:
+        current_user = await auth.get_current_user_optional(req, db)
+
         # 1. Gather User Context
         saved_places_text = ""
         # If we have an auth user extraction logic we can include it.
@@ -505,10 +519,32 @@ So we can fetch relevant places to show in the UI. Keep your text response short
             for place in final_results[:3]: # Limit to 3 places max
                 places.append(serialize_place(place, db))
                 
+        # 8. Save to history if logged in
+        if current_user and request.history:
+            # Save user's last message
+            last_user_msg = request.history[-1].content if request.history else "Hello!"
+            db_user_msg = models.AIChatMessage(
+                user_id=current_user.id,
+                role="user",
+                content=last_user_msg,
+                places_json=None
+            )
+            # Save AI's response
+            db_ai_msg = models.AIChatMessage(
+                user_id=current_user.id,
+                role="assistant",
+                content=reply_text,
+                places_json=json.dumps(places) if places else None
+            )
+            db.add(db_user_msg)
+            db.add(db_ai_msg)
+            db.commit()
+
         return {
             "reply": reply_text,
             "places": places
         }
+
         
     except Exception as e:
         print(f"AI Suggestion Error: {e}")
