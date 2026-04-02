@@ -1054,6 +1054,7 @@ function Home() {
   const [hasMore, setHasMore] = useState(true);
   const { ref, inView } = useInView({ rootMargin: '400px' });
   const PAGE_LIMIT = 20;
+  const [hasLocationDetermined, setHasLocationDetermined] = useState(false);
 
   useEffect(() => {
     if (inView && hasMore && !loading && hasLocationDetermined) {
@@ -1061,7 +1062,7 @@ function Home() {
     }
   }, [inView, hasMore, loading, hasLocationDetermined]);
 
-  const [hasLocationDetermined, setHasLocationDetermined] = useState(false);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
 
