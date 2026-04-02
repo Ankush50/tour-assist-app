@@ -11,14 +11,15 @@ import L from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import BackgroundDoodles from "./components/BackgroundDoodles";
+import AIAssistant from "./components/AIAssistant";
+
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
 });
-import BackgroundDoodles from "./components/BackgroundDoodles";
-import AIAssistant from "./components/AIAssistant";
 
 // --- Icon Components (No change) ---
 const StarIcon = ({ className = "w-4 h-4" }) => (
@@ -1577,6 +1578,7 @@ function Home() {
 
       <AIAssistant 
         filters={filters} 
+        setFilters={setFilters}
         userLocation={userLocation} 
         PlaceCardComponent={PlaceCard} 
       />

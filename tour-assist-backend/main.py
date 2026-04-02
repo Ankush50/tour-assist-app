@@ -483,11 +483,17 @@ The user currently has these filters active in the app: {filters_text}{user_loc_
 
 When suggesting places, strictly rely ONLY on the places provided natively by the app (we will search them). 
 Currently, you don't know the exact database IDs perfectly, so just suggest place names and categories natively available like "momos", "hotels", "restaurants".
-If you decide to recommend a specific theoretical place, format your recommendation text freely but output a JSON block at the very end of your response like this: 
+If you decide to recommend a specific place OR if the user asks you to filter/show specific types of places (like "show me hotels"), output a JSON block at the very end of your response like this:
 ```json
-{{"search_query": "momo"}}
+{
+  "search_query": "momo", 
+  "new_filters": {
+    "type": "Hotel"
+  }
+}
 ```
-So we can fetch relevant places to show in the UI. Keep your text response short (2-3 sentences max).
+Valid types for new_filters: "All", "Hotel", "Restaurant", "Attraction", "Activity", "Landmark".
+So we can fetch relevant places and automatically update the User Interface. Keep your text response short (2-3 sentences max).
 """
 
         # 3. Setup Model - using gemini-flash-latest since older versions are defunct.
@@ -517,8 +523,9 @@ So we can fetch relevant places to show in the UI. Keep your text response short
         
         reply_text = response.text
         
-        # 6. Extract JSON search_query if present
+        # 6. Extract JSON search_query and filters if present
         search_query = None
+        new_filters = None
         places = []
         import re
         json_match = re.search(r'```json\s*(\{.*?\})\s*```', reply_text, re.DOTALL)
@@ -526,23 +533,20 @@ So we can fetch relevant places to show in the UI. Keep your text response short
             try:
                 data = json.loads(json_match.group(1))
                 search_query = data.get("search_query")
+                new_filters = data.get("new_filters")
                 reply_text = reply_text[:json_match.start()].strip() # Remove JSON from text
             except Exception:
                 pass
                 
-        # 7. Fetch associated places if a query was generated
+        # 7. Fetch associated places natively
         if search_query:
-            # Fuzzy search using existing logic
-            all_places = db.query(models.Place).all()
-            exact_matches = [p for p in all_places if search_query.lower() in p.name.lower() or (p.address and search_query.lower() in p.address.lower())]
-            other_places = [p for p in all_places if p not in exact_matches]
-            name_map = {p.name: p for p in other_places}
-            matches = difflib.get_close_matches(search_query, list(name_map.keys()), n=3, cutoff=0.5)
-            fuzzy_matches = [name_map[m] for m in matches]
-            final_results = exact_matches + fuzzy_matches
-            
-            # Serialize
-            for place in final_results[:3]: # Limit to 3 places max
+            search_term = f"%{search_query}%"
+            results = db.query(models.Place).filter(
+                (models.Place.name.ilike(search_term)) |
+                (models.Place.description.ilike(search_term)) |
+                (models.Place.address.ilike(search_term))
+            ).limit(3).all()
+            for place in results:
                 places.append(serialize_place(place, db))
                 
         # 8. Save to history if logged in
@@ -578,7 +582,9 @@ So we can fetch relevant places to show in the UI. Keep your text response short
 
         return {
             "reply": reply_text,
-            "places": places
+            "places": places,
+            "session_id": request.session_id,
+            "new_filters": new_filters
         }
 
         

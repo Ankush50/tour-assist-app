@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import AIAssistant from "../components/AIAssistant";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -86,7 +87,15 @@ function PlaceDetail() {
         </div>
         
         <div className="p-6 sm:p-10">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">About</h2>
+                    <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100">About</h2>
+            <button
+               onClick={() => document.getElementById("ai-trigger")?.click()}
+               className="bg-accent text-gray-900 border border-gray-200 px-4 py-2 rounded-full font-bold shadow-md hover:bg-yellow-400 transition-colors flex items-center gap-2 transform hover:scale-105 active:scale-95"
+            >
+              <span className="text-xl">✨</span> Ask AI About This Place
+            </button>
+          </div>
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed max-w-3xl mb-10 text-lg">
             {place.description || "No description available for this place."}
           </p>
@@ -111,6 +120,13 @@ function PlaceDetail() {
           )}
         </div>
       </div>
+      <AIAssistant 
+        filters={{type: place.type}} 
+        setFilters={() => {}} 
+        userLocation={null} 
+        PlaceCardComponent={() => null} 
+        placeContext={place.name}
+      />
     </div>
   );
 }

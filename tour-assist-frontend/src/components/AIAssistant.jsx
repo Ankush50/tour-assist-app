@@ -54,7 +54,7 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-export default function AIAssistant({ filters, userLocation, PlaceCardComponent }) {
+export default function AIAssistant({ filters, setFilters, userLocation, PlaceCardComponent, placeContext = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -66,7 +66,9 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
   const [editChatName, setEditChatName] = useState("");
   const messagesEndRef = useRef(null);
 
-  const PROACTIVE_GREETING_PROMPT = "Say a short, friendly hello and proactively ask me what type of place I want to visit (like Restaurants, Hotels, or something else) so you can find the nearest matching results based on my location.";
+  const PROACTIVE_GREETING_PROMPT = placeContext 
+    ? `Say a short friendly hello and proactively share a small, interesting fact about the place they are currently viewing: '${placeContext}'. Ask them if they'd like to know more.`
+    : "Say a short, friendly hello and proactively ask me what type of place I want to visit (like Restaurants, Hotels, or something else) so you can find the nearest matching results based on my location.";
 
   // Initialize with greeting
   useEffect(() => {
@@ -208,6 +210,9 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
       if (response.ok) {
         const data = await response.json();
         setMessages(prev => [...prev, { role: "assistant", content: data.reply, places: data.places || [] }]);
+        if (data.new_filters && setFilters) {
+          setFilters(prev => ({ ...prev, ...data.new_filters }));
+        }
       } else {
         setMessages(prev => [...prev, { role: "assistant", content: "Oops, my circuits are a bit jumbled. Try again later!" }]);
       }
@@ -396,6 +401,7 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
 
       {/* Floating Button */}
       <button 
+        id="ai-trigger"
         onClick={() => setIsOpen(!isOpen)}
         className={`bg-gradient-to-r from-primary to-accent text-white p-4 rounded-full shadow-2xl hover:shadow-primary/50 transition-all duration-300 transform hover:scale-110 flex items-center justify-center ${isOpen ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`}
       >
