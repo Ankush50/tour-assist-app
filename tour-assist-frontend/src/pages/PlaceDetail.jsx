@@ -19,7 +19,10 @@ L.Icon.Default.mergeOptions({
 
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  return "http://127.0.0.1:8000";
+  if (import.meta.env.MODE === "production" || window.location.hostname !== "localhost") {
+    return "https://tour-assist-app.onrender.com";
+  }
+  return "http://localhost:8000";
 };
 const API_BASE_URL = getApiBaseUrl();
 
@@ -30,12 +33,13 @@ function PlaceDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // We fetch the all places API to grab the details since we don't have a specific /api/places/{id} yet
-    fetch(`${API_BASE_URL}/api/places/all?limit=1000`)
-      .then(res => res.json())
+    fetch(`${API_BASE_URL}/api/places/${id}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Place not found");
+        return res.json();
+      })
       .then(data => {
-        const found = data.places.find(p => p.id === parseInt(id));
-        setPlace(found);
+        setPlace(data);
         setLoading(false);
       })
       .catch(err => {
@@ -53,13 +57,13 @@ function PlaceDetail() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 relative z-10 w-full">
-      <button onClick={() => navigate(-1)} className="mb-6 px-4 py-2 bg-white/70 backdrop-blur-md border border-gray-200 rounded-full text-gray-700 hover:bg-gray-100 transition-colors font-medium shadow-sm flex items-center gap-2">
+    <div className="max-w-5xl mx-auto p-4 md:p-8 relative z-10 w-full animate-fade-in-up">
+      <button onClick={() => navigate(-1)} className="mb-6 px-4 py-2 bg-white/70 backdrop-blur-md border border-gray-200 rounded-full text-gray-700 hover:bg-gray-100 transition-colors font-medium shadow-sm flex items-center gap-2 transform hover:scale-105">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
         Back to Results
       </button>
 
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
         <div className="relative h-72 sm:h-96 w-full">
           <img 
             src={place.image_url || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80"}

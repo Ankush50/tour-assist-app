@@ -381,6 +381,13 @@ def get_all_places(
         places_list.append(place_dict)
         
     return {"places": places_list}
+    
+@app.get("/api/places/{place_id}")
+def get_place_detail(place_id: int, db: Session = Depends(get_db)):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    return serialize_place(place, db)
 
 
 # --- AI ASSISTANT ENDPOINT ---

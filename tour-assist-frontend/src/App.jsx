@@ -901,25 +901,32 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
           {place.description}
         </p>
 
-        {/* REVIEWS TOGGLE BUTTON */}
-        <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-          <button
-            onClick={handleToggleReviews}
-            className="text-sm text-primary font-semibold hover:text-accent transition-colors flex items-center gap-1 w-full justify-center"
+        {/* ACTIONS */}
+        <div className="mt-4 flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+          <a
+            href={place.location ? googleMapsUrl : "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => { 
+               if (!place.location) e.preventDefault(); 
+               e.stopPropagation(); 
+            }}
+            className={`flex-1 flex justify-center items-center gap-1 text-xs font-bold py-2 rounded-xl transition-all shadow-sm ${place.location ? "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-secondary hover:border-blue-400 hover:text-blue-500 hover:shadow-md" : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"}`}
           >
-            {showReviews ? "Hide Reviews" : "Read / Write Reviews"}
+            🗺️ Google Maps
+          </a>
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleReviews(e); }}
+            className="flex-1 text-xs bg-primary/10 text-primary border border-transparent font-bold py-2 rounded-xl transition-all shadow-sm hover:bg-primary hover:text-white hover:shadow-md flex justify-center items-center gap-1"
+          >
+            {showReviews ? "Hide Reviews" : "Reviews"}
             <svg
               className={`w-4 h-4 transform transition-transform ${showReviews ? "rotate-180" : ""}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
         </div>
@@ -1385,13 +1392,13 @@ function Home() {
 
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-2xl shadow-xl p-6 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="flex flex-col gap-6">
             {/* Category Filter */}
-            <fieldset className="lg:col-span-3">
+            <fieldset className="w-full">
               <legend className="text-sm font-semibold text-gray-700 mb-3">
                 Category
               </legend>
-              <div className="flex overflow-x-auto whitespace-nowrap pb-2 gap-2 hide-scrollbar">
+              <div className="flex flex-wrap gap-2">
                 {["All", "Hotel", "Restaurant", "Attraction", "Activity", "Landmark"].map((type) => (
                   <label key={type} className="relative cursor-pointer shrink-0">
                     <input
@@ -1410,88 +1417,90 @@ function Home() {
               </div>
             </fieldset>
 
-            {/* Preferences Filter */}
-            {!["Attraction", "Activity", "Landmark"].includes(filters.type) && (            <fieldset className="lg:col-span-5">
-              <legend className="text-sm font-semibold text-gray-700 mb-3">
-                Preferences
-              </legend>
-              <div className="flex flex-wrap gap-4">
-                {/* Veg/Non-Veg */}
-                <div
-                  className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
-                    filters.type === "Hotel" 
-                      ? "opacity-0 max-w-0 scale-90 -ml-2 border-0" 
-                      : "opacity-100 max-w-[300px] scale-100"
-                  }`}
-                >
-                  <label className="relative cursor-pointer flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      name="veg"
-                      checked={filters.veg}
-                      onChange={handleFilterChange}
-                      disabled={filters.type === "Hotel"}
-                      className="peer sr-only"
-                    />
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                      <VegIcon className="w-4 h-4" />
-                      Veg
-                    </span>
-                  </label>
-                  <label className="relative cursor-pointer flex-shrink-0">
-                    <input
-                      type="checkbox"
-                      name="nonVeg"
-                      checked={filters.nonVeg}
-                      onChange={handleFilterChange}
-                      disabled={filters.type === "Hotel"}
-                      className="peer sr-only"
-                    />
-                    <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent hover:border-accent/50">
-                      <NonVegIcon className="w-4 h-4" />
-                      Non-Veg
-                    </span>
-                  </label>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Preferences Filter */}
+              {!["Attraction", "Activity", "Landmark"].includes(filters.type) && (
+              <fieldset className="lg:col-span-8">
+                <legend className="text-sm font-semibold text-gray-700 mb-3">
+                  Preferences
+                </legend>
+                <div className="flex flex-wrap gap-4">
+                  {/* Veg/Non-Veg */}
+                  <div
+                    className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
+                      filters.type === "Hotel" 
+                        ? "opacity-0 max-w-0 scale-90 -ml-2 border-0" 
+                        : "opacity-100 max-w-[300px] scale-100"
+                    }`}
+                  >
+                    <label className="relative cursor-pointer flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        name="veg"
+                        checked={filters.veg}
+                        onChange={handleFilterChange}
+                        disabled={filters.type === "Hotel"}
+                        className="peer sr-only"
+                      />
+                      <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
+                        <VegIcon className="w-4 h-4" />
+                        Veg
+                      </span>
+                    </label>
+                    <label className="relative cursor-pointer flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        name="nonVeg"
+                        checked={filters.nonVeg}
+                        onChange={handleFilterChange}
+                        disabled={filters.type === "Hotel"}
+                        className="peer sr-only"
+                      />
+                      <span className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-accent peer-checked:bg-accent/10 peer-checked:text-accent hover:border-accent/50">
+                        <NonVegIcon className="w-4 h-4" />
+                        Non-Veg
+                      </span>
+                    </label>
+                  </div>
 
-                {/* Price Filter */}
-                <div
-                  className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
-                    filters.type === "Restaurant"
-                      ? "opacity-0 max-w-0 scale-90 -ml-2 border-l-0 pl-0"
-                      : `opacity-100 max-w-[400px] scale-100 ${filters.type === "All" ? "border-l border-gray-200 pl-4" : ""}`
-                  }`}
-                >
-                  {[1, 2, 3].map((price) => {
-                    const priceLabels = {
-                      1: "Budget",
-                      2: "Standard",
-                      3: "Premium",
-                    };
-                    return (
-                      <label key={price} className="relative cursor-pointer flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          name="price"
-                          value={price}
-                          checked={filters.price[price]}
-                          onChange={handleFilterChange}
-                          disabled={filters.type === "Restaurant"}
-                          className="peer sr-only"
-                        />
-                        <span className="block px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                          {priceLabels[price]}
-                        </span>
-                      </label>
-                    );
-                  })}
+                  {/* Price Filter */}
+                  <div
+                    className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
+                      filters.type === "Restaurant"
+                        ? "opacity-0 max-w-0 scale-90 -ml-2 border-l-0 pl-0"
+                        : `opacity-100 max-w-[400px] scale-100 ${filters.type === "All" ? "border-l border-gray-200 pl-4" : ""}`
+                    }`}
+                  >
+                    {[1, 2, 3].map((price) => {
+                      const priceLabels = {
+                        1: "Budget",
+                        2: "Standard",
+                        3: "Premium",
+                      };
+                      return (
+                        <label key={price} className="relative cursor-pointer flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            name="price"
+                            value={price}
+                            checked={filters.price[price]}
+                            onChange={handleFilterChange}
+                            disabled={filters.type === "Restaurant"}
+                            className="peer sr-only"
+                          />
+                          <span className="block px-3 py-2 rounded-xl border-2 border-secondary text-sm font-medium transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
+                            {priceLabels[price]}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </fieldset>
-            )}
+              </fieldset>
+              )}
 
-            {/* Sort By */}
-            <div className={!["Attraction", "Activity", "Landmark"].includes(filters.type) ? "lg:col-span-4" : "lg:col-span-9"}>
+              {/* Sort By */}
+              <div className={!["Attraction", "Activity", "Landmark"].includes(filters.type) ? "lg:col-span-4" : "lg:col-span-12"}>
               <label
                 htmlFor="sort"
                 className="text-sm font-semibold text-gray-700 block mb-3"
@@ -1513,6 +1522,7 @@ function Home() {
             </div>
           </div>
         </div>
+      </div>
 
         <div>
           {loading && (
