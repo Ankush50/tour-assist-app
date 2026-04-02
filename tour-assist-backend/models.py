@@ -49,6 +49,27 @@ class User(Base):
     # Relationships
     saved_places = relationship("Place", secondary=user_saved_places, back_populates="saved_by_users")
     reviews = relationship("Review", back_populates="user")
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+
+class Trip(Base):
+    __tablename__ = "trips"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    name = Column(String)
+    created_at = Column(DateTime, default=func.now())
+    
+    user = relationship("User", back_populates="trips")
+    items = relationship("TripDayItem", back_populates="trip", cascade="all, delete-orphan")
+
+class TripDayItem(Base):
+    __tablename__ = "trip_items"
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"))
+    place_id = Column(Integer, ForeignKey("places.id"))
+    day_number = Column(Integer, default=1)
+    
+    trip = relationship("Trip", back_populates="items")
+    place = relationship("Place")
 
 class Review(Base):
     __tablename__ = "reviews"

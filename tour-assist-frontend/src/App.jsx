@@ -1,8 +1,22 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Link } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SavedPlaces from "./pages/SavedPlaces";
+import PlaceDetail from "./pages/PlaceDetail";
+import { useInView } from "react-intersection-observer";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 import BackgroundDoodles from "./components/BackgroundDoodles";
 import AIAssistant from "./components/AIAssistant";
 
@@ -1034,6 +1048,19 @@ function Home() {
 
   // --- ADDED FOR NAVIGATION ---
   const [userLocation, setUserLocation] = useState(null);
+
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const { ref, inView } = useInView({ rootMargin: '400px' });
+  const PAGE_LIMIT = 20;
+
+  useEffect(() => {
+    if (inView && hasMore && !loading && hasLocationDetermined) {
+      setPage(p => p + 1);
+    }
+  }, [inView, hasMore, loading, hasLocationDetermined]);
+
+  const [hasLocationDetermined, setHasLocationDetermined] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
 
@@ -1087,6 +1114,7 @@ function Home() {
             lat: position.coords.latitude,
             lon: position.coords.longitude,
           });
+          setHasLocationDetermined(true);
           console.log("User location found:", position.coords);
         },
         (error) => {
@@ -1113,46 +1141,63 @@ function Home() {
               break;
           }
           setMessage(errorMessage);
+          setHasLocationDetermined(true);
         },
+        { timeout: 10000, enableHighAccuracy: true }
       );
     } else {
       console.log("Geolocation is not available in this browser.");
       setMessage("Geolocation is not supported by your browser.");
+      setHasLocationDetermined(true);
     }
   }, []); // Empty array means this runs once on load
   // --- END OF ADDED CODE ---
 
-  // --- ADDED: Fetch Default Places ---
+
   useEffect(() => {
-    // Only fetch default places if no destination is set (initial load)
-    if (!destination) {
+    if (!destination && hasLocationDetermined) {
       const fetchDefaultPlaces = async () => {
-        setLoading(true);
+        if (page === 0) setLoading(true);
         try {
-          const response = await fetch(
-            `${API_BASE_URL}/api/places/all?limit=50`,
-          );
+          let url = `${API_BASE_URL}/api/places/all?limit=${PAGE_LIMIT}&skip=${page * PAGE_LIMIT}`;
+          if (userLocation) {
+            url = `${API_BASE_URL}/api/places?lat=${userLocation.lat}&lon=${userLocation.lon}&limit=${PAGE_LIMIT}&skip=${page * PAGE_LIMIT}`;
+          }
+          
+          const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
-            setAllPlaces(data.places || []);
-            if (data.places && data.places.length > 0) {
-              setMessage("Top places for you");
+            const fetched = data.places || [];
+            if (fetched.length < PAGE_LIMIT) setHasMore(false);
+            
+            if (page === 0) {
+               setAllPlaces(fetched);
+               if (fetched.length > 0) setMessage("Top places for you");
+               else setMessage("No places found.");
             } else {
-              setMessage("No places found in database.");
+               setAllPlaces(prev => {
+                   const ids = prev.map(p => p.id);
+                   return [...prev, ...fetched.filter(p => !ids.includes(p.id))];
+               });
             }
           }
         } catch (error) {
-          console.error("Error fetching default places:", error);
-          setMessage("Could not load places. Please check connection.");
+          console.error("Error fetching defaults:", error);
+          if (page === 0) setMessage("Could not load places.");
         } finally {
-          setLoading(false);
+          if (page === 0) setLoading(false);
         }
       };
 
       fetchDefaultPlaces();
     }
-  }, []); // Run ONCE on mount
-  // --- END ADDED CODE ---
+  }, [destination, hasLocationDetermined, userLocation, page]); 
+
+  // Reset page when search or location changes
+  useEffect(() => {
+     setPage(0);
+     setHasMore(true);
+  }, [destination, userLocation]);
 
   // --- **** UPDATED SEARCH HANDLER **** ---
   // --- ADDED FOR SUGGESTIONS ---
@@ -1348,7 +1393,7 @@ function Home() {
                 Category
               </legend>
               <div className="flex flex-wrap gap-3">
-                {["All", "Hotel", "Restaurant"].map((type) => (
+                {["All", "Hotel", "Restaurant", "Attraction", "Activity", "Landmark"].map((type) => (
                   <label key={type} className="relative cursor-pointer">
                     <input
                       type="radio"
@@ -1374,9 +1419,13 @@ function Home() {
               <div className="flex flex-wrap gap-4">
                 {/* Veg/Non-Veg */}
                 <div
-                  className={`flex gap-3 ${filters.type === "Hotel" ? "opacity-40 pointer-events-none" : ""}`}
+                  className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
+                    filters.type === "Hotel" 
+                      ? "opacity-0 max-w-0 scale-90 -ml-2 border-0" 
+                      : "opacity-100 max-w-[300px] scale-100"
+                  }`}
                 >
-                  <label className="relative cursor-pointer">
+                  <label className="relative cursor-pointer flex-shrink-0">
                     <input
                       type="checkbox"
                       name="veg"
@@ -1390,7 +1439,7 @@ function Home() {
                       Veg
                     </span>
                   </label>
-                  <label className="relative cursor-pointer">
+                  <label className="relative cursor-pointer flex-shrink-0">
                     <input
                       type="checkbox"
                       name="nonVeg"
@@ -1408,7 +1457,11 @@ function Home() {
 
                 {/* Price Filter */}
                 <div
-                  className={`flex gap-3 border-l border-gray-200 pl-4 ${filters.type === "Restaurant" ? "opacity-40 pointer-events-none" : ""}`}
+                  className={`flex gap-3 overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-left ${
+                    filters.type === "Restaurant"
+                      ? "opacity-0 max-w-0 scale-90 -ml-2 border-l-0 pl-0"
+                      : `opacity-100 max-w-[400px] scale-100 ${filters.type === "All" ? "border-l border-gray-200 pl-4" : ""}`
+                  }`}
                 >
                   {[1, 2, 3].map((price) => {
                     const priceLabels = {
@@ -1417,7 +1470,7 @@ function Home() {
                       3: "Premium",
                     };
                     return (
-                      <label key={price} className="relative cursor-pointer">
+                      <label key={price} className="relative cursor-pointer flex-shrink-0">
                         <input
                           type="checkbox"
                           name="price"
@@ -1475,15 +1528,43 @@ function Home() {
           )}
 
           {!loading && filteredResults.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredResults.map((place, index) => (
-                <PlaceCard
-                  key={place.id}
-                  place={place}
-                  userLocation={userLocation}
-                  priority={index < 4}
-                />
-              ))}
+            <div className="flex flex-col lg:flex-row gap-6">
+              <div className="w-full lg:w-[65%]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredResults.map((place, index) => (
+                    <PlaceCard
+                      key={place.id}
+                      place={place}
+                      userLocation={userLocation}
+                      priority={index < 4}
+                    />
+                  ))}
+                </div>
+                {hasMore && <div ref={ref} className="h-20 w-full flex items-center justify-center text-gray-500 mt-4">Loading more places...</div>}
+              </div>
+              
+              <div className="w-full lg:w-[35%] hidden lg:block">
+                <div className="sticky top-8 h-[calc(100vh-120px)] rounded-2xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-700">
+                  <MapContainer 
+                    center={userLocation ? [userLocation.lat, userLocation.lon] : [20.5937, 78.9629]} 
+                    zoom={userLocation ? 13 : 5} 
+                    scrollWheelZoom={true} 
+                    className="h-full w-full z-0"
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    />
+                    {filteredResults.map(p => 
+                      p.location && p.location.coordinates ? (
+                        <Marker key={p.id} position={[p.location.coordinates[1], p.location.coordinates[0]]}>
+                           <Popup><Link to={`/places/${p.id}`} className="font-bold underline">{p.name}</Link></Popup>
+                        </Marker>
+                      ) : null
+                    )}
+                  </MapContainer>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1511,6 +1592,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/saved" element={<SavedPlaces />} />
+        <Route path="/places/:id" element={<PlaceDetail />} />
       </Routes>
     </BrowserRouter>
   );

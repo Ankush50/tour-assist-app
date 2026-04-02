@@ -63,6 +63,7 @@ class AIContextRequest(BaseModel):
     filters: dict
     budget: list[int]
     session_id: str
+    user_location: dict | None = None
 
 class AIChatMessageResponse(BaseModel):
     id: int

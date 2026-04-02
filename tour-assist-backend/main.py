@@ -222,7 +222,9 @@ def get_place_reviews(place_id: int, db: Session = Depends(get_db)):
 @app.get("/api/places")
 async def get_places(
     lat: float, 
-    lon: float, 
+    lon: float,
+    skip: int = 0,
+    limit: int = 50,
     db: Session = Depends(get_db)
 ):
     """
@@ -230,22 +232,15 @@ async def get_places(
     """
     
     user_location_point = cast(from_shape(Point(lon, lat), srid=4326), Geography)
-    # Radius set to 1.5 km as requested
-    search_radius_meters = 1500
 
     query = (
         db.query(
             models.Place,
             func.ST_Distance(models.Place.location, user_location_point).label("distance")
         )
-        .filter(
-            func.ST_DWithin(
-                models.Place.location,
-                user_location_point,
-                search_radius_meters
-            )
-        )
         .order_by("distance")
+        .offset(skip)
+        .limit(limit)
     )
     
     results = query.all()
@@ -308,63 +303,32 @@ async def create_place_by_address(
 
 @app.get("/api/places/search")
 def search_places(
-    query: str, 
+    query: str,
+    skip: int = 0,
+    limit: int = 50,
     db: Session = Depends(get_db)
 ):
     """
-    Search for places by name with fuzzy matching.
-    Prioritizes exact matches, then fuzzy matches.
+    Search for places using Postgres native ILIKE for scalable substring operations.
     """
     if not query:
         return {"places": []}
         
-    # Get all places from DB (optimisation: normally you'd filter in SQL, 
-    # but for fuzzy match we need python logic or pg_trgm extension. 
-    # Using python difflib for simplicity as requested/planned)
-    all_places = db.query(models.Place).all()
-    
-    # 1. Exact/Contains Match (Case Insensitive) - Name OR Address
-    exact_matches = [
-        p for p in all_places 
-        if query.lower() in p.name.lower() or (p.address and query.lower() in p.address.lower())
-    ]
-    
-    # 2. Fuzzy Match
-    # Get list of places not in exact_matches
-    other_places = [p for p in all_places if p not in exact_matches]
-    
-    # We will fuzzy match against Name AND Address
-    # Create a map for easy lookup: string -> place
-    name_map = {p.name: p for p in other_places}
-    address_map = {p.address: p for p in other_places if p.address}
-    
-    all_searchable_strings = list(name_map.keys()) + list(address_map.keys())
-    
-    # Find close matches (cutoff=0.6 means 60% similarity)
-    close_matches_strings = difflib.get_close_matches(query, all_searchable_strings, n=5, cutoff=0.6)
-    
-    fuzzy_matches = []
-    for s in close_matches_strings:
-        if s in name_map:
-            fuzzy_matches.append(name_map[s])
-        elif s in address_map:
-            fuzzy_matches.append(address_map[s])
-            
-    # Dedup fuzzy matches just in case
-    fuzzy_matches = list(set(fuzzy_matches))
-    
-    # Combine results
-    final_results = exact_matches + fuzzy_matches
+    search_term = f"%{query}%"
+    places = db.query(models.Place).filter(
+        (models.Place.name.ilike(search_term)) |
+        (models.Place.address.ilike(search_term)) |
+        (models.Place.type.ilike(search_term)) |
+        (models.Place.description.ilike(search_term))
+    ).offset(skip).limit(limit).all()
     
     # Format results
     places_list = []
-    for place in final_results:
+    for place in places:
         place_dict = serialize_place(place, db)
-        
-
-            
         places_list.append(place_dict)
         
+    return {"places": places_list}
     return {"places": places_list}
 
 @app.get("/api/places/suggestions")
@@ -373,52 +337,47 @@ def get_search_suggestions(
     db: Session = Depends(get_db)
 ):
     """
-    Returns list of place names for autocomplete suggestions.
+    Returns list of place names, addresses, and types for autocomplete suggestions natively.
     """
     if not query:
         return {"suggestions": []}
         
-    # Optimisation: Fetch names and addresses
-    results = db.query(models.Place.name, models.Place.address).all()
+    search_term = f"%{query}%"
+    results = db.query(models.Place.name, models.Place.address, models.Place.type).filter(
+        (models.Place.name.ilike(search_term)) |
+        (models.Place.address.ilike(search_term)) |
+        (models.Place.type.ilike(search_term))
+    ).limit(20).all()
     
     all_strings = []
-    for name, address in results:
-        if name:
+    for name, address, p_type in results:
+        if name and query.lower() in name.lower():
             all_strings.append(name)
-        if address:
+        if address and query.lower() in address.lower():
             all_strings.append(address)
+        if p_type and query.lower() in p_type.lower():
+            all_strings.append(p_type)
     
-    # Remove duplicates
     all_strings = list(set(all_strings))
+    query_lower = query.lower()
+    all_strings.sort(key=lambda x: (not x.lower().startswith(query_lower), query_lower not in x.lower(), x))
     
-    # Find matches
-    matches = difflib.get_close_matches(query, all_strings, n=5, cutoff=0.5)
-    
-    # Also include starts_with matches
-    starts_with = [s for s in all_strings if s.lower().startswith(query.lower())]
-    
-    # Combine and dedup
-    combined = list(set(matches + starts_with))
-    combined.sort() # Sort alphabetically
-    
-    return {"suggestions": combined[:5]}
+    return {"suggestions": all_strings[:7]}
 
 @app.get("/api/places/all")
 def get_all_places(
+    skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db)
 ):
     """
-    Fetch all places (with limit) for default view.
+    Fetch all places paginated.
     """
-    places = db.query(models.Place).limit(limit).all()
+    places = db.query(models.Place).offset(skip).limit(limit).all()
     
     places_list = []
     for place in places:
         place_dict = serialize_place(place, db)
-        
-
-            
         places_list.append(place_dict)
         
     return {"places": places_list}
@@ -456,6 +415,19 @@ async def get_ai_session_history(
     ).order_by(models.AIChatMessage.created_at.asc()).all()
     return messages
 
+@app.delete("/api/ai/history/{session_id}", response_model=dict)
+async def delete_ai_session(
+    session_id: str,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    db.query(models.AIChatMessage).filter(
+        models.AIChatMessage.user_id == current_user.id,
+        models.AIChatMessage.session_id == session_id
+    ).delete()
+    db.commit()
+    return {"message": "success"}
+
 @app.put("/api/ai/history/{session_id}", response_model=dict)
 async def rename_ai_session(
     session_id: str,
@@ -485,17 +457,29 @@ async def ai_suggest(
 
         # 1. Gather User Context
         saved_places_text = ""
-        # If we have an auth user extraction logic we can include it.
-        # Right now we'll just rely on the frontend sending context.
+        if current_user:
+            saved_names = [p.name for p in current_user.saved_places]
+            if saved_names:
+                saved_places_text += f"\n- The user has saved these places: {', '.join(saved_names)}."
+            
+            good_reviews = [r.place.name for r in current_user.reviews if r.rating >= 4]
+            if good_reviews:
+                saved_places_text += f"\n- The user gave high ratings to: {', '.join(good_reviews)}."
+            
+            if saved_places_text:
+                saved_places_text = "\n\nUser Preferences based on interactions:" + saved_places_text
         
         filters_text = json.dumps(request.filters)
+        user_loc_text = ""
+        if request.user_location:
+            user_loc_text = f"\nThe user's current location coordinates are Lat: {request.user_location.get('lat')}, Lon: {request.user_location.get('lon')}."
         
         # 2. Construct System Prompt
         system_instructions = f"""
 You are Odyssey AI, a friendly and enthusiastic travel assistant for the Tour Assist app.
 Your tone should be welcoming, engaging, and brief. Use emojis appropriately.
 
-The user currently has these filters active in the app: {filters_text}
+The user currently has these filters active in the app: {filters_text}{user_loc_text}{saved_places_text}
 
 When suggesting places, strictly rely ONLY on the places provided natively by the app (we will search them). 
 Currently, you don't know the exact database IDs perfectly, so just suggest place names and categories natively available like "momos", "hotels", "restaurants".

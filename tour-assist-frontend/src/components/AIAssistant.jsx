@@ -37,6 +37,12 @@ const EditIcon = ({ className = "w-5 h-5" }) => (
   </svg>
 );
 
+const DeleteIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+);
+
 // We leverage the simplest logic for API URL so this component is portable
 const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -60,10 +66,12 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
   const [editChatName, setEditChatName] = useState("");
   const messagesEndRef = useRef(null);
 
+  const PROACTIVE_GREETING_PROMPT = "Say a short, friendly hello and proactively ask me what type of place I want to visit (like Restaurants, Hotels, or something else) so you can find the nearest matching results based on my location.";
+
   // Initialize with greeting
   useEffect(() => {
     if (messages.length === 0 && isOpen) {
-      sendAIRequest([{ role: "user", content: "Say a short, friendly hello and suggest something broadly based on my filters!" }]);
+      sendAIRequest([{ role: "user", content: PROACTIVE_GREETING_PROMPT }]);
     }
   }, [isOpen]);
 
@@ -151,11 +159,32 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
     }
   };
 
+  const deleteSession = async (sessionId, e) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai/history/${sessionId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setHistoryList(prev => prev.filter(s => s.session_id !== sessionId));
+        if (currentSessionId === sessionId) {
+           startNewChat();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete session", err);
+    }
+  };
+
   const startNewChat = () => {
     setMessages([]);
     setCurrentSessionId(crypto.randomUUID());
     setShowHistoryList(false);
-    sendAIRequest([{ role: "user", content: "Say a short, friendly hello and suggest something broadly based on my filters!" }]);
+    sendAIRequest([{ role: "user", content: PROACTIVE_GREETING_PROMPT }]);
   };
 
   const sendAIRequest = async (chatHistory) => {
@@ -171,7 +200,8 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
           history: chatHistory,
           filters: filters || {},
           budget: [],
-          session_id: currentSessionId
+          session_id: currentSessionId,
+          user_location: userLocation || null
         })
       });
 
@@ -198,7 +228,7 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
     setInputText("");
     
     // We filter out the internal welcome trigger if present, to not confuse the AI
-    const apiHistory = newMessages.filter(m => !(m.role === "user" && m.content.includes("Say a short, friendly hello")));
+    const apiHistory = newMessages.filter(m => !(m.role === "user" && m.content.includes("friendly hello")));
     
     sendAIRequest(apiHistory);
   };
@@ -284,19 +314,29 @@ export default function AIAssistant({ filters, userLocation, PlaceCardComponent 
                         {new Date(session.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setEditChatName(session.chat_name); setEditingSessionId(session.session_id); }}
-                      className="p-2 opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors shrink-0"
-                    >
-                      <EditIcon className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center shrink-0">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setEditChatName(session.chat_name); setEditingSessionId(session.session_id); }}
+                        className="p-2 opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+                        title="Rename Chat"
+                      >
+                        <EditIcon className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={(e) => deleteSession(session.session_id, e)}
+                        className="p-2 opacity-60 hover:opacity-100 hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 rounded-full transition-colors"
+                        title="Delete Chat"
+                      >
+                        <DeleteIcon className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
-              {messages.filter(m => !(m.role === 'user' && m.content.includes("Say a short, friendly hello"))).map((msg, idx) => (
+              {messages.filter(m => !(m.role === 'user' && m.content.includes("friendly hello"))).map((msg, idx) => (
                 <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                   <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm shadow-sm ${
                     msg.role === 'user' 
