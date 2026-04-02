@@ -485,12 +485,12 @@ When suggesting places, strictly rely ONLY on the places provided natively by th
 Currently, you don't know the exact database IDs perfectly, so just suggest place names and categories natively available like "momos", "hotels", "restaurants".
 If you decide to recommend a specific place OR if the user asks you to filter/show specific types of places (like "show me hotels"), output a JSON block at the very end of your response like this:
 ```json
-{
+{{
   "search_query": "momo", 
-  "new_filters": {
+  "new_filters": {{
     "type": "Hotel"
-  }
-}
+  }}
+}}
 ```
 Valid types for new_filters: "All", "Hotel", "Restaurant", "Attraction", "Activity", "Landmark".
 So we can fetch relevant places and automatically update the User Interface. Keep your text response short (2-3 sentences max).

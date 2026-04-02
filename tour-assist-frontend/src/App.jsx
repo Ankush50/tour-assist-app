@@ -793,13 +793,11 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
   return (
     <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] flex flex-col h-full relative">
       <div className="relative">
-        <a
-          href={place.location ? googleMapsUrl : "#"}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to={`/places/${place.id}`}
           title={
             place.location
-              ? "Click to get directions"
+              ? "View details"
               : "Location not available"
           }
           className={`block ${!place.location ? "cursor-not-allowed pointer-events-none" : ""}`}
@@ -830,7 +828,7 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
               </div>
             </div>
           )}
-        </a>
+        </Link>
 
         {/* HEART ICON FOR SAVING */}
         <button
@@ -854,15 +852,13 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
       </div>
       <div className="p-4 flex flex-col flex-grow">
         <div className="flex justify-between items-start mb-1">
-          <a
-            href={place.location ? googleMapsUrl : "#"}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to={`/places/${place.id}`}
             className={`text-lg font-bold text-text-main truncate hover:text-primary transition-colors ${!place.location ? "cursor-not-allowed pointer-events-none" : ""}`}
             title={place.name}
           >
             {place.name}
-          </a>
+          </Link>
           <span
             className={`text-xs font-semibold px-2 py-0.5 rounded-full ${place.type === "Hotel" ? "bg-secondary text-text-main" : "bg-primary/20 text-primary"}`}
           >
@@ -1055,6 +1051,7 @@ function Home() {
   const { ref, inView } = useInView({ rootMargin: '400px' });
   const PAGE_LIMIT = 20;
   const [hasLocationDetermined, setHasLocationDetermined] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   useEffect(() => {
     if (inView && hasMore && !loading && hasLocationDetermined) {
@@ -1394,9 +1391,9 @@ function Home() {
               <legend className="text-sm font-semibold text-gray-700 mb-3">
                 Category
               </legend>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex overflow-x-auto whitespace-nowrap pb-2 gap-2 hide-scrollbar">
                 {["All", "Hotel", "Restaurant", "Attraction", "Activity", "Landmark"].map((type) => (
-                  <label key={type} className="relative cursor-pointer">
+                  <label key={type} className="relative cursor-pointer shrink-0">
                     <input
                       type="radio"
                       name="type"
@@ -1405,8 +1402,8 @@ function Home() {
                       onChange={handleFilterChange}
                       className="peer sr-only"
                     />
-                    <span className="block px-4 py-2 rounded-xl border-2 border-secondary text-sm font-medium text-text-main transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50">
-                      {type === "All" ? "All" : type + "s"}
+                    <span className="block px-4 py-2 rounded-full border border-secondary text-sm font-medium text-text-main transition-all peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary hover:border-primary/50 shadow-sm">
+                      {type === "All" ? "All" : (type === "Activity" ? "Activities" : type + "s")}
                     </span>
                   </label>
                 ))}
@@ -1414,7 +1411,7 @@ function Home() {
             </fieldset>
 
             {/* Preferences Filter */}
-            <fieldset className="lg:col-span-5">
+            {!["Attraction", "Activity", "Landmark"].includes(filters.type) && (            <fieldset className="lg:col-span-5">
               <legend className="text-sm font-semibold text-gray-700 mb-3">
                 Preferences
               </legend>
@@ -1491,9 +1488,10 @@ function Home() {
                 </div>
               </div>
             </fieldset>
+            )}
 
             {/* Sort By */}
-            <div className="lg:col-span-4">
+            <div className={!["Attraction", "Activity", "Landmark"].includes(filters.type) ? "lg:col-span-4" : "lg:col-span-9"}>
               <label
                 htmlFor="sort"
                 className="text-sm font-semibold text-gray-700 block mb-3"
@@ -1530,9 +1528,18 @@ function Home() {
           )}
 
           {!loading && filteredResults.length > 0 && (
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="w-full lg:w-[65%]">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
+              <div className="w-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold font-serif text-text-main">Found {filteredResults.length} {filters.type === "All" ? "Places" : (filters.type === "Activity" ? "Activities" : filters.type + "s")}</h2>
+                  <button 
+                    onClick={() => setShowMapModal(true)} 
+                    className="bg-primary text-white border border-transparent px-4 py-2 sm:px-5 sm:py-2.5 rounded-full font-semibold shadow-md flex items-center gap-2 hover:bg-opacity-90 hover:shadow-lg transition-all transform hover:scale-105 active:scale-95"
+                  >
+                     <span>🗺️</span> View Map
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredResults.map((place, index) => (
                     <PlaceCard
                       key={place.id}
@@ -1542,37 +1549,14 @@ function Home() {
                     />
                   ))}
                 </div>
-                {hasMore && <div ref={ref} className="h-20 w-full flex items-center justify-center text-gray-500 mt-4">Loading more places...</div>}
-              </div>
-              
-              <div className="w-full lg:w-[35%] hidden lg:block">
-                <div className="sticky top-8 h-[calc(100vh-120px)] rounded-2xl overflow-hidden shadow-xl border border-gray-200 dark:border-gray-700">
-                  <MapContainer 
-                    center={userLocation ? [userLocation.lat, userLocation.lon] : [20.5937, 78.9629]} 
-                    zoom={userLocation ? 13 : 5} 
-                    scrollWheelZoom={true} 
-                    className="h-full w-full z-0"
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                    />
-                    {filteredResults.map(p => 
-                      p.location && p.location.coordinates ? (
-                        <Marker key={p.id} position={[p.location.coordinates[1], p.location.coordinates[0]]}>
-                           <Popup><Link to={`/places/${p.id}`} className="font-bold underline">{p.name}</Link></Popup>
-                        </Marker>
-                      ) : null
-                    )}
-                  </MapContainer>
-                </div>
+                {hasMore && <div ref={ref} className="h-20 w-full flex items-center justify-center text-gray-500 mt-4 font-medium">Loading more places...</div>}
               </div>
             </div>
           )}
         </div>
       </main>
 
-      {/* Footer Container Needs Full Width */}
+      {/* FOOTER CONTAINER */}
       <div className="w-full mt-auto">
         <Footer />
       </div>
@@ -1583,6 +1567,44 @@ function Home() {
         userLocation={userLocation} 
         PlaceCardComponent={PlaceCard} 
       />
+
+      {/* MAP MODAL */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden shadow-2xl relative border border-white/20">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-surface">
+              <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
+                🗺️ Interactive Map
+              </h3>
+              <button onClick={() => setShowMapModal(false)} className="p-2 bg-gray-100 hover:bg-red-50 hover:text-red-500 dark:bg-gray-700 dark:hover:bg-red-900/30 rounded-full transition-colors flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 w-full relative bg-gray-100 dark:bg-gray-900">
+              <MapContainer 
+                center={userLocation ? [userLocation.lat, userLocation.lon] : [20.5937, 78.9629]} 
+                zoom={userLocation ? 13 : 5} 
+                scrollWheelZoom={true} 
+                className="h-full w-full absolute inset-0 z-0"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                />
+                {filteredResults.map(p => 
+                  p.location && p.location.coordinates ? (
+                    <Marker key={p.id} position={[p.location.coordinates[1], p.location.coordinates[0]]}>
+                       <Popup><Link to={`/places/${p.id}`} className="font-bold underline text-primary">{p.name}</Link></Popup>
+                    </Marker>
+                  ) : null
+                )}
+              </MapContainer>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
