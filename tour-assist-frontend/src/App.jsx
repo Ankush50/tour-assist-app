@@ -690,6 +690,46 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
   // Feature 3: local vote tracking
   const [localVotes, setLocalVotes] = useState({});
 
+  // Feature 7: Add to Trip from card
+  const [showTripMenu, setShowTripMenu] = useState(false);
+  const [cardTrips, setCardTrips] = useState([]);
+  const [selectedTripIdCard, setSelectedTripIdCard] = useState("");
+  const [addingToTripCard, setAddingToTripCard] = useState(false);
+  const [addedToTripCard, setAddedToTripCard] = useState(false);
+
+  const fetchCardTrips = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) { alert("Please log in to add places to a trip."); return; }
+    if (cardTrips.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/trips`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) { const data = await res.json(); setCardTrips(data); }
+      } catch (e) { console.error(e); }
+    }
+    setShowTripMenu(v => !v);
+  };
+
+  const handleAddToTripCard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !selectedTripIdCard) return;
+    setAddingToTripCard(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/trips/${selectedTripIdCard}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ place_id: place.id, day_number: 1 }),
+      });
+      if (res.ok) {
+        setAddedToTripCard(true);
+        setTimeout(() => { setAddedToTripCard(false); setShowTripMenu(false); setSelectedTripIdCard(""); }, 2200);
+      } else {
+        const err = await res.json();
+        alert(err.detail || "Could not add to trip.");
+      }
+    } catch (e) { console.error(e); }
+    setAddingToTripCard(false);
+  };
+
   const fetchReviews = async () => {
     setLoadingReviews(true);
     try {
@@ -930,33 +970,78 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
         </p>
 
         {/* ACTIONS */}
-        <div className="mt-4 flex gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-4 flex gap-2 pt-4 border-t border-gray-100 dark:border-gray-800 flex-wrap">
           <a
             href={place.location ? googleMapsUrl : "#"}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={(e) => { 
-               if (!place.location) e.preventDefault(); 
-               e.stopPropagation(); 
-            }}
-            className={`flex-1 flex justify-center items-center gap-1 text-xs font-bold py-2 rounded-xl transition-all shadow-sm ${place.location ? "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-secondary hover:border-blue-400 hover:text-blue-500 hover:shadow-md" : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"}`}
+            onClick={(e) => { if (!place.location) e.preventDefault(); e.stopPropagation(); }}
+            className={`flex-1 flex justify-center items-center gap-1 text-xs font-bold py-2 rounded-xl transition-all shadow-sm min-w-[90px] ${place.location ? "bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-secondary hover:border-blue-400 hover:text-blue-500 hover:shadow-md" : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"}`}
           >
-            🗺️ Google Maps
+            🗺️ Maps
           </a>
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleReviews(e); }}
-            className="flex-1 text-xs bg-primary/10 text-primary border border-transparent font-bold py-2 rounded-xl transition-all shadow-sm hover:bg-primary hover:text-white hover:shadow-md flex justify-center items-center gap-1"
+            className="flex-1 text-xs bg-primary/10 text-primary border border-transparent font-bold py-2 rounded-xl transition-all shadow-sm hover:bg-primary hover:text-white hover:shadow-md flex justify-center items-center gap-1 min-w-[90px]"
           >
-            {showReviews ? "Hide Reviews" : "Reviews"}
-            <svg
-              className={`w-4 h-4 transform transition-transform ${showReviews ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            💬 {showReviews ? "Hide" : "Reviews"}
           </button>
+          {/* Feature 7: Add to Trip */}
+          <div className="relative">
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); fetchCardTrips(); }}
+              className={`text-xs font-bold py-2 px-3 rounded-xl transition-all shadow-sm flex items-center gap-1 ${
+                addedToTripCard
+                  ? "bg-green-100 text-green-600 border border-green-200"
+                  : "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-600 hover:text-white"
+              }`}
+              title="Add to Trip"
+            >
+              {addedToTripCard ? "✅" : "📌"}
+            </button>
+            {showTripMenu && (
+              <div
+                className="absolute bottom-10 right-0 z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 w-52"
+                onClick={e => e.stopPropagation()}
+              >
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">📌 Add to Trip</p>
+                {cardTrips.length === 0 ? (
+                  <div className="text-center py-2">
+                    <p className="text-xs text-gray-400 mb-2">No trips yet!</p>
+                    <Link to="/trips" className="text-xs text-indigo-600 font-bold hover:underline">Create one →</Link>
+                  </div>
+                ) : (
+                  <>
+                    <select
+                      value={selectedTripIdCard}
+                      onChange={e => setSelectedTripIdCard(e.target.value)}
+                      className="w-full text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-surface text-text-main mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    >
+                      <option value="">Select trip...</option>
+                      {cardTrips.map(t => (
+                        <option key={t.id} value={t.id}>{t.name} ({t.item_count})</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={handleAddToTripCard}
+                        disabled={!selectedTripIdCard || addingToTripCard || addedToTripCard}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          addedToTripCard ? "bg-green-100 text-green-600" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                        }`}
+                      >
+                        {addedToTripCard ? "Added! ✅" : addingToTripCard ? "..." : "Add"}
+                      </button>
+                      <button
+                        onClick={() => setShowTripMenu(false)}
+                        className="px-2 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >✕</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* REVIEWS SECTION */}
@@ -1118,11 +1203,14 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
 
 // --- Main App Component ---
 function Home() {
-  const [destination, setDestination] = useState("");
-  const [allPlaces, setAllPlaces] = useState([]);
+  // Restore state from sessionStorage so "Back" returns to previous results
+  const [destination, setDestination] = useState(() => sessionStorage.getItem("ody_dest") || "");
+  const [allPlaces, setAllPlaces] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem("ody_places") || "[]"); } catch { return []; }
+  });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(
-    "Find nearby hotels and restaurants for your trip.",
+    () => sessionStorage.getItem("ody_msg") || "Find nearby hotels and restaurants for your trip."
   );
   const [filters, setFilters] = useState({
     type: "All",
@@ -1133,6 +1221,8 @@ function Home() {
   });
   // Feature 5: Mood-Based Discovery
   const [selectedMood, setSelectedMood] = useState(null);
+  // Track if state was restored from cache (skip auto-fetch)
+  const restoredFromCache = allPlaces.length > 0;
 
   // --- ADDED FOR NAVIGATION ---
   const [userLocation, setUserLocation] = useState(null);
@@ -1244,8 +1334,18 @@ function Home() {
   // --- END OF ADDED CODE ---
 
 
+  // Save state to sessionStorage whenever results update (enables Back button restoration)
   useEffect(() => {
-    if (!destination && hasLocationDetermined) {
+    if (allPlaces.length > 0) {
+      sessionStorage.setItem("ody_places", JSON.stringify(allPlaces));
+      sessionStorage.setItem("ody_dest", destination);
+      sessionStorage.setItem("ody_msg", message);
+    }
+  }, [allPlaces, destination, message]);
+
+  useEffect(() => {
+    // Skip auto-fetch if we already have cached results from a previous visit
+    if (!destination && hasLocationDetermined && !restoredFromCache) {
       const fetchDefaultPlaces = async () => {
         if (page === 0) setLoading(true);
         try {
@@ -1253,22 +1353,20 @@ function Home() {
           if (userLocation) {
             url = `${API_BASE_URL}/api/places?lat=${userLocation.lat}&lon=${userLocation.lon}&limit=${PAGE_LIMIT}&skip=${page * PAGE_LIMIT}`;
           }
-          
           const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
             const fetched = data.places || [];
             if (fetched.length < PAGE_LIMIT) setHasMore(false);
-            
             if (page === 0) {
-               setAllPlaces(fetched);
-               if (fetched.length > 0) setMessage("Top places for you");
-               else setMessage("No places found.");
+              setAllPlaces(fetched);
+              if (fetched.length > 0) setMessage("Top places for you");
+              else setMessage("No places found.");
             } else {
-               setAllPlaces(prev => {
-                   const ids = prev.map(p => p.id);
-                   return [...prev, ...fetched.filter(p => !ids.includes(p.id))];
-               });
+              setAllPlaces(prev => {
+                const ids = prev.map(p => p.id);
+                return [...prev, ...fetched.filter(p => !ids.includes(p.id))];
+              });
             }
           }
         } catch (error) {
@@ -1278,7 +1376,6 @@ function Home() {
           if (page === 0) setLoading(false);
         }
       };
-
       fetchDefaultPlaces();
     }
   }, [destination, hasLocationDetermined, userLocation, page]); 
