@@ -419,8 +419,12 @@ const Navbar = ({
     <nav className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border-b border-white/20 dark:border-gray-700/50 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-4 md:gap-6">
-          {/* Branding - Top Left */}
-          <div className="flex items-center gap-2 group cursor-pointer shrink-0">
+          {/* Branding - Top Left — clicking navigates home */}
+          <div
+            className="flex items-center gap-2 group cursor-pointer shrink-0"
+            onClick={() => navigate("/")}
+            title="Go to Home"
+          >
             <h1 className="text-2xl md:text-3xl font-bold font-serif text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent animate-gradient-flow animate-breathing">
               Odyssey
             </h1>
@@ -463,15 +467,22 @@ const Navbar = ({
 
           {/* Actions - Top Right on Mobile, Right on Desktop */}
           <div className="flex items-center gap-2 md:gap-3 order-2 md:order-3 shrink-0">
+            {/* Home Button */}
+            <button
+              onClick={() => navigate("/")}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-text-main"
+              title="Home"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </button>
+
             {/* Install App Button */}
             <button
               onClick={handleInstallClick}
               className={`p-2 rounded-full transition-colors text-text-main ${deferredPrompt ? "hover:bg-gray-200 dark:hover:bg-gray-700 animate-pulse text-primary" : "hover:bg-gray-200 dark:hover:bg-gray-700 opacity-50"}`}
-              title={
-                deferredPrompt
-                  ? "Install Web App"
-                  : "App Installed / Not Available"
-              }
+              title={deferredPrompt ? "Install Web App" : "App Installed / Not Available"}
             >
               <InstallIcon />
             </button>
@@ -1382,9 +1393,34 @@ function Home() {
 
   // Reset page when search or location changes
   useEffect(() => {
-     setPage(0);
-     setHasMore(true);
+    setPage(0);
+    setHasMore(true);
   }, [destination, userLocation]);
+
+  // When a specific type filter is selected, fetch all places of that type from the backend
+  // This ensures places like "Taj Mahal" (Attraction) show up even if they weren't in the initial batch
+  useEffect(() => {
+    if (filters.type === "All") return;
+    const fetchByType = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/places/search?query=${encodeURIComponent(filters.type)}&limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const fetched = (data.places || []).filter(p => p.type === filters.type);
+          if (fetched.length > 0) {
+            setAllPlaces(prev => {
+              const existingIds = new Set(prev.map(p => p.id));
+              const newOnes = fetched.filter(p => !existingIds.has(p.id));
+              return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Type filter fetch error:", e);
+      }
+    };
+    fetchByType();
+  }, [filters.type]);
 
   // --- **** UPDATED SEARCH HANDLER **** ---
   // --- ADDED FOR SUGGESTIONS ---
