@@ -1232,6 +1232,8 @@ function Home() {
   });
   // Feature 5: Mood-Based Discovery
   const [selectedMood, setSelectedMood] = useState(null);
+  // Holds places fetched for a specific type filter — keeps allPlaces (nearest-ordered) untouched
+  const [typeSearchPlaces, setTypeSearchPlaces] = useState(null);
   // Track if state was restored from cache (skip auto-fetch)
   const restoredFromCache = allPlaces.length > 0;
 
@@ -1398,22 +1400,19 @@ function Home() {
   }, [destination, userLocation]);
 
   // When a specific type filter is selected, fetch all places of that type from the backend
-  // This ensures places like "Taj Mahal" (Attraction) show up even if they weren't in the initial batch
+  // Uses a SEPARATE state so allPlaces (nearest-ordered) is never polluted
   useEffect(() => {
-    if (filters.type === "All") return;
+    if (filters.type === "All") {
+      setTypeSearchPlaces(null); // restore nearest ordering
+      return;
+    }
     const fetchByType = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/places/search?query=${encodeURIComponent(filters.type)}&limit=100`);
         if (res.ok) {
           const data = await res.json();
           const fetched = (data.places || []).filter(p => p.type === filters.type);
-          if (fetched.length > 0) {
-            setAllPlaces(prev => {
-              const existingIds = new Set(prev.map(p => p.id));
-              const newOnes = fetched.filter(p => !existingIds.has(p.id));
-              return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
-            });
-          }
+          setTypeSearchPlaces(fetched.length > 0 ? fetched : []);
         }
       } catch (e) {
         console.error("Type filter fetch error:", e);
@@ -1580,8 +1579,10 @@ function Home() {
   };
 
   const filteredResults = useMemo(() => {
-    return filterAndSortPlaces(allPlaces, filters);
-  }, [allPlaces, filters]);
+    // Use type-specific results when a type filter is active (preserves nearest ordering for All)
+    const base = typeSearchPlaces !== null ? typeSearchPlaces : allPlaces;
+    return filterAndSortPlaces(base, filters);
+  }, [allPlaces, typeSearchPlaces, filters]);
 
   return (
     <div className="min-h-screen bg-background text-text-main font-sans flex flex-col relative overflow-x-hidden">

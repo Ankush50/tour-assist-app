@@ -33,6 +33,7 @@ function TripPlanner() {
   const [creating, setCreating] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripDetail, setTripDetail] = useState(null);
+  const [activityLogs, setActivityLogs] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
@@ -57,10 +58,20 @@ function TripPlanner() {
   const loadTripDetail = async (tripId) => {
     setSelectedTrip(tripId);
     setTripDetail(null);
+    setActivityLogs([]);
     setLoadingDetail(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/trips/${tripId}`, { headers: authHeaders() });
-      if (res.ok) setTripDetail(await res.json());
+      if (res.ok) {
+        const tripData = await res.json();
+        setTripDetail(tripData);
+        if (tripData.share_token) {
+          fetch(`${API_BASE_URL}/api/trips/${tripId}/activity`, { headers: authHeaders() })
+            .then(r => r.json())
+            .then(logs => setActivityLogs(logs))
+            .catch(e => console.error("Could not fetch activity", e));
+        }
+      }
     } catch (e) { console.error(e); }
     setLoadingDetail(false);
   };
@@ -104,6 +115,23 @@ function TripPlanner() {
     } catch (e) { console.error(e); }
   };
 
+  const changeItemDay = async (itemId, newDay) => {
+    if (!tripDetail) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/trips/${tripDetail.id}/items/${itemId}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ day_number: newDay }),
+      });
+      if (res.ok) {
+        setTripDetail(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, day_number: newDay } : i)
+        }));
+      }
+    } catch (e) { console.error(e); }
+  };
+
   const shareTrip = async () => {
     if (!tripDetail) return;
     setSharing(true);
@@ -142,9 +170,9 @@ function TripPlanner() {
   });
   const sortedDays = Object.keys(dayGroups).map(Number).sort((a, b) => a - b);
 
-  const selectedTripObj = trips.find(t => t.id === selectedTrip);
   const selectedTripColorIdx = trips.findIndex(t => t.id === selectedTrip);
   const activePalette = getColor(selectedTripColorIdx);
+  const maxDay = sortedDays.length > 0 ? Math.max(...sortedDays) : 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950 font-sans">
@@ -336,21 +364,54 @@ function TripPlanner() {
 
               {/* Shared link banner */}
               {tripDetail.share_token && (
-                <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 flex-wrap">
-                  <span className="text-xl">🔗</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Public link active</p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-500 truncate font-mono mt-0.5">
-                      {window.location.origin}/trip/{tripDetail.share_token}
-                    </p>
+                <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-2xl flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div className="flex-1 min-w-0 flex items-center gap-3 w-full">
+                    <span className="text-xl">🔗</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Public link active</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-500 truncate font-mono mt-0.5">
+                        {window.location.origin}/trip/{tripDetail.share_token}
+                      </p>
+                    </div>
                   </div>
                   <Link
                     to={`/trip/${tripDetail.share_token}`}
                     target="_blank"
-                    className="shrink-0 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors"
+                    className="shrink-0 w-full sm:w-auto text-center px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-colors"
                   >
                     Preview →
                   </Link>
+                </div>
+              )}
+
+              {/* Activity Log (if shared and has logs) */}
+              {tripDetail.share_token && activityLogs.length > 0 && (
+                <div className="mb-6 p-4 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm">
+                  <h3 className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <span>📡</span> Recent Collaborator Activity
+                  </h3>
+                  <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                    {activityLogs.map(log => (
+                      <div key={log.id} className="text-xs flex items-start gap-2 bg-gray-50 dark:bg-gray-900/50 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800">
+                        {log.action === "added" ? <span className="text-emerald-500">➕</span> :
+                         log.action === "removed" ? <span className="text-red-500">➖</span> :
+                         <span className="text-blue-500">🔄</span>}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-700 dark:text-gray-300">
+                            <span className="font-bold text-gray-900 dark:text-gray-100">{log.collaborator}</span>{" "}
+                            {log.action}{" "}
+                            <span className="font-bold">{log.place_name}</span>{" "}
+                            {log.detail && ` ${log.detail}`}
+                          </p>
+                          <p className="text-[9px] text-gray-400 mt-0.5 font-medium uppercase">
+                            {new Date(log.created_at).toLocaleString(undefined, {
+                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -446,13 +507,27 @@ function TripPlanner() {
                                       </p>
                                     )}
                                   </div>
-                                  <div className="flex gap-1.5 mt-2">
+                                  <div className="flex gap-1.5 mt-2 flex-wrap items-center">
                                     {mapsUrl && (
                                       <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
                                         className="text-[10px] px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-500 hover:border-blue-300 hover:text-blue-500 transition-colors font-semibold">
                                         🗺️ Maps
                                       </a>
                                     )}
+                                    {/* Day selector */}
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] text-gray-400">Day:</span>
+                                      <select
+                                        value={item.day_number}
+                                        onChange={e => changeItemDay(item.id, Number(e.target.value))}
+                                        className={`text-[10px] px-1.5 py-0.5 rounded-lg border ${dayPal.border} ${dayPal.light} ${dayPal.text} font-bold focus:outline-none focus:ring-1 focus:ring-indigo-400 cursor-pointer`}
+                                        title="Move to a different day"
+                                      >
+                                        {Array.from({ length: maxDay + 1 }, (_, i) => i + 1).map(d => (
+                                          <option key={d} value={d}>Day {d}</option>
+                                        ))}
+                                      </select>
+                                    </div>
                                     <button
                                       onClick={() => removeItem(item.id)}
                                       className="text-[10px] px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-400 hover:border-red-300 hover:text-red-400 transition-colors font-semibold"

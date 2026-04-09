@@ -52,6 +52,16 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE places ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;",
     # Trip item ordering
     "ALTER TABLE trip_items ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;",
+    # Feature: Collaboration logging
+    """CREATE TABLE IF NOT EXISTS trip_collaboration_logs (
+        id SERIAL PRIMARY KEY,
+        trip_id INTEGER REFERENCES trips(id) ON DELETE CASCADE,
+        collaborator_username VARCHAR,
+        action VARCHAR,
+        place_name VARCHAR,
+        detail VARCHAR,
+        created_at TIMESTAMP DEFAULT NOW()
+    );""",
 ]
 
 with engine.connect() as conn:
@@ -735,6 +745,148 @@ def get_shared_trip(share_token: str, db: Session = Depends(get_db)):
         "share_token": share_token,
         "items": items
     }
+
+
+# Owner: change day number of a trip item
+@app.patch("/api/trips/{trip_id}/items/{item_id}")
+async def update_trip_item_day(
+    trip_id: int,
+    item_id: int,
+    payload: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id, models.Trip.user_id == current_user.id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    item = db.query(models.TripDayItem).filter(
+        models.TripDayItem.id == item_id, models.TripDayItem.trip_id == trip_id
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    item.day_number = int(payload.get("day_number", item.day_number))
+    db.commit()
+    return {"day_number": item.day_number}
+
+
+# Shared trip collaborative editing — requires login
+@app.post("/api/trips/shared/{share_token}/items")
+def add_to_shared_trip(
+    share_token: str,
+    item_data: TripItemCreate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.share_token == share_token).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Shared trip not found")
+    if trip.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You are the owner. Use /api/trips endpoints.")
+    existing = db.query(models.TripDayItem).filter(
+        models.TripDayItem.trip_id == trip.id,
+        models.TripDayItem.place_id == item_data.place_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Place already in this trip.")
+    item = models.TripDayItem(trip_id=trip.id, place_id=item_data.place_id, day_number=item_data.day_number)
+    db.add(item)
+    # Log the action
+    place = db.query(models.Place).filter(models.Place.id == item_data.place_id).first()
+    log = models.TripCollaborationLog(
+        trip_id=trip.id,
+        collaborator_username=current_user.username,
+        action="added",
+        place_name=place.name if place else f"Place #{item_data.place_id}",
+        detail=f"to Day {item_data.day_number}"
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(item)
+    return {"id": item.id, "day_number": item.day_number, "place": serialize_place(place, db) if place else None}
+
+
+@app.delete("/api/trips/shared/{share_token}/items/{item_id}")
+def remove_from_shared_trip(
+    share_token: str,
+    item_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.share_token == share_token).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Shared trip not found")
+    item = db.query(models.TripDayItem).filter(
+        models.TripDayItem.id == item_id, models.TripDayItem.trip_id == trip.id
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    place_name = item.place.name if item.place else f"Item #{item_id}"
+    db.delete(item)
+    log = models.TripCollaborationLog(
+        trip_id=trip.id,
+        collaborator_username=current_user.username,
+        action="removed",
+        place_name=place_name,
+        detail=None
+    )
+    db.add(log)
+    db.commit()
+    return {"message": "Removed"}
+
+
+@app.patch("/api/trips/shared/{share_token}/items/{item_id}")
+def update_shared_trip_item_day(
+    share_token: str,
+    item_id: int,
+    payload: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.share_token == share_token).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Shared trip not found")
+    item = db.query(models.TripDayItem).filter(
+        models.TripDayItem.id == item_id, models.TripDayItem.trip_id == trip.id
+    ).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    old_day = item.day_number
+    new_day = int(payload.get("day_number", old_day))
+    place_name = item.place.name if item.place else f"Item #{item_id}"
+    item.day_number = new_day
+    log = models.TripCollaborationLog(
+        trip_id=trip.id,
+        collaborator_username=current_user.username,
+        action="moved_to_day",
+        place_name=place_name,
+        detail=f"from Day {old_day} to Day {new_day}"
+    )
+    db.add(log)
+    db.commit()
+    return {"day_number": new_day}
+
+
+# Owner: view collaboration activity log
+@app.get("/api/trips/{trip_id}/activity")
+def get_trip_activity(
+    trip_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id, models.Trip.user_id == current_user.id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    logs = db.query(models.TripCollaborationLog).filter(
+        models.TripCollaborationLog.trip_id == trip_id
+    ).order_by(models.TripCollaborationLog.created_at.desc()).limit(50).all()
+    return [{
+        "id": l.id,
+        "collaborator": l.collaborator_username,
+        "action": l.action,
+        "place_name": l.place_name,
+        "detail": l.detail,
+        "created_at": str(l.created_at)
+    } for l in logs]
 
 
 # ============================================================

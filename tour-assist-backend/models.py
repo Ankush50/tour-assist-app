@@ -62,6 +62,8 @@ class Trip(Base):
 
     user = relationship("User", back_populates="trips")
     items = relationship("TripDayItem", back_populates="trip", cascade="all, delete-orphan")
+    collaboration_logs = relationship("TripCollaborationLog", back_populates="trip", cascade="all, delete-orphan")
+
 
 
 class TripDayItem(Base):
@@ -130,3 +132,19 @@ class AIChatMessage(Base):
     created_at = Column(DateTime, default=func.now())
 
     user = relationship("User")
+
+
+class TripCollaborationLog(Base):
+    """Tracks who changed what on a shared trip — shown to the owner."""
+    __tablename__ = "trip_collaboration_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"))
+    collaborator_username = Column(String)   # logged-in user who made the change
+    action = Column(String)                  # "added", "removed", "moved_to_day"
+    place_name = Column(String)
+    detail = Column(String, nullable=True)   # e.g. "from Day 1 to Day 3"
+    created_at = Column(DateTime, default=func.now())
+
+    trip = relationship("Trip", back_populates="collaboration_logs")
+
