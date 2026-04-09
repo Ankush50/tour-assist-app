@@ -54,7 +54,7 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-export default function AIAssistant({ filters, setFilters, userLocation, PlaceCardComponent, placeContext = null }) {
+export default function AIAssistant({ filters, setFilters, userLocation, PlaceCardComponent, placeContext = null, mood = null }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -203,7 +203,8 @@ export default function AIAssistant({ filters, setFilters, userLocation, PlaceCa
           filters: filters || {},
           budget: [],
           session_id: currentSessionId,
-          user_location: userLocation || null
+          user_location: userLocation || null,
+          mood: mood || null
         })
       });
 
