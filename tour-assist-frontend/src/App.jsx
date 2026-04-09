@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Link, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SavedPlaces from "./pages/SavedPlaces";
 import PlaceDetail from "./pages/PlaceDetail";
 import SharedTrip from "./pages/SharedTrip";
 import TripPlanner from "./pages/TripPlanner";
+import Profile from "./pages/Profile";
 import { useInView } from "react-intersection-observer";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -282,7 +283,7 @@ const getApiBaseUrl = () => {
   return "http://localhost:8000";
 };
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 // Log the API URL being used (for debugging)
 console.log("API Base URL:", API_BASE_URL);
@@ -380,6 +381,7 @@ const Navbar = ({
   username,
   onLogout,
   navigate,
+  hideSearch,
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -433,7 +435,7 @@ const Navbar = ({
             </span>
           </div>
 
-          {/* Search Bar - Full width on Mobile (order 3), Center on Desktop (order 2) */}
+          {!hideSearch && (
           <div className="w-full md:w-auto md:flex-1 max-w-2xl relative order-3 md:order-2">
             <div className="relative">
               <input
@@ -464,6 +466,7 @@ const Navbar = ({
               onSelect={onSuggestionSelect}
             />
           </div>
+          )}
 
           {/* Actions - Top Right on Mobile, Right on Desktop */}
           <div className="flex items-center gap-2 md:gap-3 order-2 md:order-3 shrink-0">
@@ -524,6 +527,13 @@ const Navbar = ({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                       Saved Places
+                    </button>
+                    <button
+                      onClick={() => navigate("/profile")}
+                      className="w-full text-left px-4 py-2.5 text-sm font-semibold text-text-main hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2 mb-1"
+                    >
+                      <span className="w-4 h-4 text-emerald-500 text-center flex items-center justify-center">🛂</span>
+                      My Passport
                     </button>
                     <button
                       onClick={() => navigate("/trips")}
@@ -1214,6 +1224,24 @@ const PlaceCard = ({ place, userLocation, priority = false }) => {
 
 // --- Main App Component ---
 function Home() {
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q");
+    if (q) {
+       if (q !== destination) {
+           setDestination(q);
+           handleSearch(null, q);
+       }
+    } else if (location.search === "") {
+       if (destination !== "") {
+           setDestination("");
+           setAllPlaces([]);
+           setPage(0);
+       }
+    }
+  }, [location.search]);
+
   // Restore state from sessionStorage so "Back" returns to previous results
   const [destination, setDestination] = useState(() => sessionStorage.getItem("ody_dest") || "");
   const [allPlaces, setAllPlaces] = useState(() => {
@@ -1589,24 +1617,8 @@ function Home() {
       <div className="fixed inset-0 z-0 pointer-events-none opacity-30 dark:opacity-20">
         <BackgroundDoodles />
       </div>
-      {/* Navbar Wrapper to match centering flow since App is flex-col items-center but Navbar wants 100% */}
-      <div className="w-full">
-        <Navbar
-          destination={destination}
-          setDestination={setDestination}
-          onSearch={handleSearch}
-          loading={loading}
-          suggestions={suggestions}
-          onSuggestionSelect={handleSuggestionSelect}
-          theme={theme}
-          toggleTheme={toggleTheme}
-          onLoginClick={() => navigate("/login")}
-          isLoggedIn={isLoggedIn}
-          username={username}
-          onLogout={handleLogout}
-          navigate={navigate}
-        />
-      </div>
+      
+      
 
       <main className="max-w-6xl mx-auto p-4 md:p-8 flex-grow w-full">
         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-lg border border-white/40 dark:border-gray-700/50 rounded-2xl shadow-xl p-6 mb-6">
@@ -1841,19 +1853,90 @@ function Home() {
   );
 }
 
+
+function AppLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("theme")) return localStorage.getItem("theme");
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    if (theme === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme(prev => prev === "light" ? "dark" : "light");
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUsername = localStorage.getItem("username");
+    if (token && storedUsername) { setIsLoggedIn(true); setUsername(storedUsername); }
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    setIsLoggedIn(false);
+    setUsername("");
+    navigate("/");
+  };
+
+  const [globalDest, setGlobalDest] = useState("");
+  const handleGlobalSearch = (e) => {
+    if (e) e.preventDefault();
+    if (globalDest.trim()) {
+      navigate(`/?q=${encodeURIComponent(globalDest)}`);
+    } else {
+      setGlobalDest("");
+      navigate("/");
+    }
+  };
+
+  return (
+    <>
+      <div className={`w-full relative z-50 ${theme === 'dark' ? 'dark' : ''}`}>
+        <Navbar
+          destination={globalDest}
+          setDestination={setGlobalDest}
+          onSearch={handleGlobalSearch}
+          loading={false}
+          suggestions={[]}
+          onSuggestionSelect={(s) => { setGlobalDest(s); navigate(`/?q=${encodeURIComponent(s)}`); }}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          onLoginClick={() => navigate("/login")}
+          isLoggedIn={isLoggedIn}
+          username={username}
+          onLogout={handleLogout}
+          navigate={navigate}
+          hideSearch={location.pathname !== "/"}
+        />
+      </div>
+      <div className={`flex-grow flex flex-col relative w-full ${theme === 'dark' ? 'dark' : ''}`}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/saved" element={<SavedPlaces />} />
+            <Route path="/places/:id" element={<PlaceDetail />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/trips" element={<TripPlanner />} />
+            <Route path="/trip/:shareToken" element={<SharedTrip />} />
+          </Routes>
+      </div>
+    </>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/saved" element={<SavedPlaces />} />
-        <Route path="/places/:id" element={<PlaceDetail />} />
-        {/* Feature 7: Shared Trip Planner */}
-        <Route path="/trips" element={<TripPlanner />} />
-        <Route path="/trip/:shareToken" element={<SharedTrip />} />
-      </Routes>
+      <AppLayout />
     </BrowserRouter>
   );
 }

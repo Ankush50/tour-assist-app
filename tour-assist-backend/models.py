@@ -30,6 +30,12 @@ class Place(Base):
     # Feature 8: Smart Visit Counter
     view_count = Column(Integer, default=0, server_default='0')
 
+    # Features: Eco Score & Emergency
+    eco_score = Column(Integer, default=4)
+    hospital_contact = Column(String, nullable=True)
+    police_contact = Column(String, nullable=True)
+    crowd_pulse = Column(String, nullable=True)
+
     # Relationships
     saved_by_users = relationship("User", secondary=user_saved_places, back_populates="saved_places")
     reviews = relationship("Review", back_populates="place", lazy="dynamic")
@@ -59,6 +65,9 @@ class Trip(Base):
 
     # Feature 7: Shared Trip Planner
     share_token = Column(String, unique=True, nullable=True)
+
+    # Feature 5 (New): Travel Buddy Matcher
+    is_looking_for_buddy = Column(Boolean, default=False, server_default='false')
 
     user = relationship("User", back_populates="trips")
     items = relationship("TripDayItem", back_populates="trip", cascade="all, delete-orphan")

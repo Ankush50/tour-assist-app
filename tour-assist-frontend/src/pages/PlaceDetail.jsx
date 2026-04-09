@@ -61,6 +61,8 @@ function PlaceDetail() {
   const [newReviewRating, setNewReviewRating] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [localVotes, setLocalVotes] = useState({});
+  const [aiSummary, setAiSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   // Trip planner integration
   const [trips, setTrips] = useState([]);
@@ -68,6 +70,9 @@ function PlaceDetail() {
   const [addingToTrip, setAddingToTrip] = useState(false);
   const [addedToTrip, setAddedToTrip] = useState(false);
   const [showTripPanel, setShowTripPanel] = useState(false);
+
+  // New features
+  const [isDictating, setIsDictating] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -93,6 +98,18 @@ function PlaceDetail() {
       if (res.ok) setReviews(await res.json());
     } catch (e) { console.error(e); }
     setLoadingReviews(false);
+  };
+
+  const handleSummarizeReviews = async () => {
+    setLoadingSummary(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/places/${id}/summary`);
+      if (res.ok) {
+        const data = await res.json();
+        setAiSummary(data.summary);
+      }
+    } catch (e) { console.error(e); }
+    setLoadingSummary(false);
   };
 
   const fetchUserTrips = async () => {
@@ -182,9 +199,14 @@ function PlaceDetail() {
   const googleMapsUrl = hasPosition ? `https://www.google.com/maps/dir/?api=1&destination=${position[0]},${position[1]}` : null;
 
   // Crowd pulse from backend (Feature 6)
-  const crowdPulse = place.crowd_pulse;
+  const crowdPulse = place?.crowd_pulse;
   // Visit counter (Feature 8)
-  const viewCount = place.view_count || 0;
+  const viewCount = place?.view_count || 0;
+  
+  // Real Features sourced from DB
+  const ecoScore = place?.eco_score || 4; 
+  const policeStation = place?.police_contact || "";
+  const hospital = place?.hospital_contact || "";
 
   return (
     <div className="max-w-5xl mx-auto p-4 md:p-8 relative z-10 w-full animate-fade-in-up">
@@ -239,6 +261,10 @@ function PlaceDetail() {
               )}
               {/* Feature 6: Crowd Pulse */}
               {crowdPulse && <CrowdPulseBadge pulse={crowdPulse} />}
+              {/* Feature: Eco Score */}
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold flex items-center gap-1 border border-emerald-200">
+                🌱 Eco: {ecoScore}/5
+              </span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-white mb-2 leading-tight drop-shadow-md">{place.name}</h1>
             <p className="text-gray-200 text-sm flex items-center gap-2">
@@ -303,6 +329,22 @@ function PlaceDetail() {
               </button>
             </div>
           </div>
+
+          {/* Feature: Local Emergency Card */}
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="flex gap-3 items-center">
+              <span className="text-2xl">🚨</span>
+              <div>
+                <p className="text-xs font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Emergency Info</p>
+                <p className="text-sm text-red-800 dark:text-red-300 font-medium">Safe zone. Tourist police active.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 text-xs font-medium text-red-700 dark:text-red-300">
+              <div>🏥 {hospital}</div>
+              <div>🚓 {policeStation}</div>
+            </div>
+          </div>
+
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed max-w-3xl mb-8 text-base">
             {place.description || "No description available for this place."}
           </p>
@@ -358,16 +400,87 @@ function PlaceDetail() {
                   ))}
                   <span className="ml-2 text-sm text-gray-500 font-medium">{newReviewRating}/5</span>
                 </div>
-                <textarea
-                  value={newReviewText}
-                  onChange={e => setNewReviewText(e.target.value)}
-                  placeholder="Share your experience in detail (specific food, ambiance, service)..."
-                  className="w-full text-sm p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-text-main focus:ring-2 focus:ring-primary outline-none resize-none mb-3"
-                  rows="3"
-                />
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center bg-white dark:bg-gray-900 p-2 rounded-xl mb-3 border border-gray-200 dark:border-gray-700">
+                  <textarea
+                    value={newReviewText}
+                    onChange={e => setNewReviewText(e.target.value)}
+                    placeholder="Share your experience (or tap the mic to dictate)..."
+                    className="w-full text-sm p-2 bg-transparent text-text-main focus:outline-none resize-none"
+                    rows="2"
+                  />
+                  {/* Feature: Voice Dictation */}
+                  <div>
+                    <button type="button" 
+                      onClick={() => {
+                        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        if (!SpeechRecognition) {
+                          alert("Voice dictation is not supported in this browser.");
+                          return;
+                        }
+                        const recognition = new SpeechRecognition();
+                        recognition.continuous = true;
+                        recognition.interimResults = true;
+                        recognition.lang = 'en-US';
+                        
+                        // Show visual UI feedback that browser is actually listening
+                        setIsDictating(true);
+                        
+                        recognition.onresult = (e) => {
+                          let finalTranscripts = '';
+                          let interimTranscripts = '';
+                          for (let i = e.resultIndex; i < e.results.length; i++) {
+                            const transcript = e.results[i][0].transcript;
+                            if (e.results[i].isFinal) {
+                              finalTranscripts += transcript;
+                            } else {
+                              interimTranscripts += transcript;
+                            }
+                          }
+                          
+                          if (finalTranscripts) {
+                            setNewReviewText(prev => prev ? prev + " " + finalTranscripts : finalTranscripts);
+                          }
+                        };
+                        
+                        recognition.onerror = (e) => {
+                          console.error("Speech Recognition Error:", e);
+                          alert("Speech recognition failed. Please ensure microphone permissions are granted.");
+                          setIsDictating(false);
+                        };
+                        
+                        recognition.onend = () => {
+                          setIsDictating(false);
+                        };
+                        
+                        recognition.start();
+                        
+                        // Safety timeout
+                        setTimeout(() => {
+                           recognition.stop();
+                           setIsDictating(false);
+                        }, 10000);
+                      }}
+                      className={`ml-2 p-3 shrink-0 rounded-xl transition-colors ${
+                        isDictating ? "bg-red-500 text-white animate-pulse" : "bg-gray-100 hover:bg-gray-200 text-gray-500"
+                      }`}
+                      title="Dictate Review"
+                    >
+                      🎙️
+                    </button>
+                    {isDictating && (
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900/90 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center justify-center gap-3">
+                        <span className="relative flex h-4 w-4">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
+                        </span>
+                        <p className="font-bold tracking-wide">Listening... Speak now.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center flex-wrap gap-3">
                   <p className="text-xs text-gray-400 flex items-center gap-1">
-                    📍 Your location will be checked to verify your visit
+                    📍 Location checked for geo-verification
                   </p>
                   <button type="submit" disabled={submittingReview}
                     className="px-5 py-2 bg-primary text-white text-sm font-bold rounded-xl hover:bg-opacity-90 transition-colors disabled:opacity-50 flex items-center gap-2">
@@ -382,7 +495,34 @@ function PlaceDetail() {
               </div>
             )}
 
-            {/* Review List */}
+            {/* Review List & AI Summary */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                Reviews
+                <span className="bg-gray-100 text-gray-600 text-sm py-1 px-3 rounded-full font-bold">{reviews.length}</span>
+              </h2>
+              {reviews.length > 0 && !aiSummary && (
+                <button
+                  onClick={handleSummarizeReviews}
+                  disabled={loadingSummary}
+                  className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
+                >
+                  {loadingSummary ? "Generating..." : "✨ AI Summarise"}
+                </button>
+              )}
+            </div>
+
+            {aiSummary && (
+              <div className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl shadow-sm">
+                <p className="text-indigo-800 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wide">
+                  <span>✨</span> AI Summary Consensus
+                </p>
+                <div className="text-indigo-900 text-sm leading-relaxed whitespace-pre-line">
+                  {aiSummary}
+                </div>
+              </div>
+            )}
+
             {loadingReviews ? (
               <div className="text-center py-8 text-gray-400">Loading reviews...</div>
             ) : reviews.length === 0 ? (

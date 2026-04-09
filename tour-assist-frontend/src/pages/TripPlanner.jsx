@@ -39,6 +39,10 @@ function TripPlanner() {
   const [copiedToken, setCopiedToken] = useState(false);
   const [shareError, setShareError] = useState(null);
 
+  // Travel Buddy Matcher
+  const [buddyMatches, setBuddyMatches] = useState([]);
+  const [loadingBuddies, setLoadingBuddies] = useState(false);
+
   useEffect(() => {
     if (!token) { navigate("/login"); return; }
     fetchTrips();
@@ -71,9 +75,43 @@ function TripPlanner() {
             .then(logs => setActivityLogs(logs))
             .catch(e => console.error("Could not fetch activity", e));
         }
+        if (tripData.is_looking_for_buddy) {
+          fetchBuddyMatches(tripId);
+        }
       }
     } catch (e) { console.error(e); }
     setLoadingDetail(false);
+  };
+
+  const fetchBuddyMatches = async (tripId) => {
+    setLoadingBuddies(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/buddies/matches?trip_id=${tripId}`, { headers: authHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setBuddyMatches(data.matches || []);
+      }
+    } catch (e) { console.error(e); }
+    setLoadingBuddies(false);
+  };
+
+  const toggleBuddy = async () => {
+    if (!tripDetail) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/trips/${tripDetail.id}/buddy`, {
+        method: "POST",
+        headers: authHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTripDetail(prev => ({ ...prev, is_looking_for_buddy: data.is_looking_for_buddy }));
+        if (data.is_looking_for_buddy) {
+          fetchBuddyMatches(tripDetail.id);
+        } else {
+          setBuddyMatches([]);
+        }
+      }
+    } catch (e) { console.error(e); }
   };
 
   const createTrip = async (e) => {
@@ -354,6 +392,17 @@ function TripPlanner() {
                     >
                       + Add Places
                     </Link>
+                    {/* Feature 5: Buddy Matcher Toggle */}
+                    <button
+                      onClick={toggleBuddy}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
+                        tripDetail.is_looking_for_buddy
+                          ? "bg-amber-400 text-amber-900 border-amber-300 shadow-inner"
+                          : "bg-white/10 hover:bg-white/20 text-white border-white/20"
+                      }`}
+                    >
+                      {tripDetail.is_looking_for_buddy ? "🤝 Finding Buddies..." : "🤝 Find Travel Buddy"}
+                    </button>
                   </div>
 
                   {shareError && (
@@ -412,6 +461,40 @@ function TripPlanner() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Potential Buddy Matches */}
+              {tripDetail.is_looking_for_buddy && (
+                <div className="mb-6 p-5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl shadow-sm">
+                  <h3 className="text-sm font-black text-amber-900 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <span>👥</span> Potential Travel Buddies
+                  </h3>
+                  {loadingBuddies ? (
+                    <p className="text-xs text-amber-700">Analyzing trip overlaps...</p>
+                  ) : buddyMatches.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {buddyMatches.map(match => (
+                        <div key={match.username} className="bg-white/80 p-3 rounded-xl border border-amber-100 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white font-bold flex items-center justify-center uppercase shadow-sm">
+                              {match.username.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-gray-800">{match.username}</p>
+                              <p className="text-xs text-amber-600 font-medium">{match.shared_interests.join(" • ")}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-black text-emerald-600">{match.match_percentage}%</div>
+                            <div className="text-[10px] text-gray-400 uppercase font-bold">Match</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-700">No overlapping itineraries found yet. We'll keep looking!</p>
+                  )}
                 </div>
               )}
 

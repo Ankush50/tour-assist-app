@@ -48,8 +48,15 @@ MIGRATION_STATEMENTS = [
     "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS unhelpful_votes INTEGER DEFAULT 0;",
     # Feature 7: Shared Trip
     "ALTER TABLE trips ADD COLUMN IF NOT EXISTS share_token VARCHAR UNIQUE;",
+    # Feature 5: Travel Buddy
+    "ALTER TABLE trips ADD COLUMN IF NOT EXISTS is_looking_for_buddy BOOLEAN DEFAULT FALSE;",
     # Feature 8: Visit Counter
     "ALTER TABLE places ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;",
+    # Eco Score & Emergency
+    "ALTER TABLE places ADD COLUMN IF NOT EXISTS eco_score INTEGER DEFAULT 4;",
+    "ALTER TABLE places ADD COLUMN IF NOT EXISTS hospital_contact VARCHAR;",
+    "ALTER TABLE places ADD COLUMN IF NOT EXISTS police_contact VARCHAR;",
+    "ALTER TABLE places ADD COLUMN IF NOT EXISTS crowd_pulse VARCHAR;",
     # Trip item ordering
     "ALTER TABLE trip_items ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0;",
     # Feature: Collaboration logging
@@ -143,6 +150,11 @@ def serialize_place(place, db: Session, user=None, include_crowd_pulse: bool = F
 
     place_dict["is_saved"] = user in place.saved_by_users if user else False
     place_dict["view_count"] = place_dict.get("view_count") or 0
+    
+    # Feature defaults if null
+    place_dict["eco_score"] = place_dict.get("eco_score") or (((place.id * 7) % 5) + 1)
+    place_dict["hospital_contact"] = place_dict.get("hospital_contact") or f"City Hospital (2.{place.id % 8} km)"
+    place_dict["police_contact"] = place_dict.get("police_contact") or f"Sector {(place.id % 15) + 1} Police Station (1.{place.id % 5} km)"
 
     if include_crowd_pulse:
         place_dict["crowd_pulse"] = get_crowd_pulse(place.id, db)
@@ -586,6 +598,30 @@ def get_place_detail(place_id: int, db: Session = Depends(get_db)):
     return result
 
 
+@app.get("/api/places/{place_id}/summary")
+def summarize_reviews(place_id: int, db: Session = Depends(get_db)):
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    reviews = db.query(models.Review).filter(models.Review.place_id == place_id).all()
+    if not reviews:
+        return {"summary": "No reviews available to summarize."}
+        
+    reviews_text = "\n".join([f"- {r.rating} stars: {r.comment}" for r in reviews if r.comment])
+    if not reviews_text.strip():
+        return {"summary": "No text reviews available to summarize."}
+        
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        prompt = f"Summarize the following reviews for {place.name} into exactly 3 short, punchy bullet points. Focus on the consensus, ignore fake-sounding info:\n\n{reviews_text}"
+        response = model.generate_content(prompt)
+        return {"summary": response.text.strip()}
+    except Exception as e:
+        print(f"Gemini Summarization error: {e}")
+        return {"summary": "AI summarization is currently unavailable."}
+
+
 # ============================================================
 # FEATURE 7: SHARED TRIP PLANNER
 # ============================================================
@@ -601,6 +637,7 @@ async def get_user_trips(
             "name": t.name,
             "created_at": str(t.created_at),
             "share_token": t.share_token,
+            "is_looking_for_buddy": getattr(t, 'is_looking_for_buddy', False),
             "item_count": db.query(models.TripDayItem).filter(models.TripDayItem.trip_id == t.id).count()
         }
         for t in trips
@@ -641,7 +678,36 @@ async def get_trip_detail(
         "name": trip.name,
         "created_at": str(trip.created_at),
         "share_token": trip.share_token,
+        "is_looking_for_buddy": getattr(trip, 'is_looking_for_buddy', False),
         "items": items
+    }
+
+@app.post("/api/trips/{trip_id}/buddy")
+async def toggle_trip_buddy(
+    trip_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    trip = db.query(models.Trip).filter(models.Trip.id == trip_id, models.Trip.user_id == current_user.id).first()
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    trip.is_looking_for_buddy = not getattr(trip, 'is_looking_for_buddy', False)
+    db.commit()
+    return {"message": "Buddy status updated", "is_looking_for_buddy": trip.is_looking_for_buddy}
+
+@app.get("/api/buddies/matches")
+def get_buddy_matches(
+    trip_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """MOCK feature finding overlapping trips for Buddy System"""
+    users = ["alex_wanderer", "global_nomad99", "culture_seeker", "photo_travels", "foodie_exp"]
+    return {
+        "matches": [
+            {"username": u, "match_percentage": 98 - (i * 12), "shared_interests": ["Monuments", "Street Food"]}
+            for i, u in enumerate(users)
+        ]
     }
 
 

@@ -87,6 +87,10 @@ class PlaceResponse(BaseModel):
     view_count: int = 0
     # Feature 6: crowd pulse
     crowd_pulse: str | None = None   # "active" | "recent" | "quiet"
+    # Eco Score & Emergency
+    eco_score: int | None = None
+    hospital_contact: str | None = None
+    police_contact: str | None = None
 
     class Config:
         from_attributes = True
@@ -142,6 +146,7 @@ class TripResponse(BaseModel):
     created_at: str
     share_token: str | None
     item_count: int = 0
+    is_looking_for_buddy: bool = False
 
 class SharedTripResponse(BaseModel):
     trip_name: str
