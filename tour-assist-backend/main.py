@@ -29,8 +29,7 @@ from utils import get_location_from_address
 import auth
 import difflib
 
-# Configure Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# The new google-genai SDK handles API Key implicitly in Client()
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -617,7 +616,7 @@ def summarize_reviews(place_id: int, db: Session = Depends(get_db)):
         client = genai.Client()
         prompt = f"Summarize the following reviews for {place.name} into exactly 3 short, punchy bullet points. Focus on the consensus, ignore fake-sounding info:\n\n{reviews_text}"
         response = client.models.generate_content(
-            model='gemini-2.0-flash',
+            model='gemini-2.5-flash',
             contents=prompt
         )
         # Parse it if it returned JSON somehow, or just return as is
@@ -1085,7 +1084,7 @@ Keep your text response short (2-3 sentences max). Let your personality shine!
             prompt += f"User: {latest_msg}\nAssistant:"
             
             response = client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-2.5-flash',
                 contents=prompt
             )
             reply_text = response.text
