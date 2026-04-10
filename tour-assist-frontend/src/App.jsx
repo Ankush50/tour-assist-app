@@ -197,27 +197,29 @@ function filterAndSortPlaces(places, filters) {
     filtered = filtered.filter((place) => place.type === filters.type);
   }
 
-  if (filters.type !== "Hotel") {
-    if (filters.veg && !filters.nonVeg) {
-      filtered = filtered.filter((place) => place.veg === true);
-    } else if (!filters.veg && filters.nonVeg) {
-      filtered = filtered.filter((place) => place.nonVeg === true);
-    } else if (!filters.veg && !filters.nonVeg) {
-      filtered = filtered.filter((place) => place.type === "Hotel");
-    }
+  // Veg/Non-Veg Filtering (Only apply if explicitly set)
+  if (filters.veg || filters.nonVeg) {
+    filtered = filtered.filter((place) => {
+      // Typically food filters only apply to Restaurants/Cafes etc.
+      // We will only enforce this on Restaurants, or things that have veg/non_veg properties
+      if (place.type !== "Restaurant") return true;
+
+      if (filters.veg && !filters.nonVeg) return place.veg === true;
+      if (!filters.veg && filters.nonVeg) return place.non_veg === true || place.nonVeg === true;
+      return true; // if both selected, include both
+    });
   }
 
-  if (filters.type !== "Restaurant") {
-    const selectedPrices = Object.keys(filters.price)
-      .filter((key) => filters.price[key])
-      .map((key) => parseInt(key));
+  // Price Filtering (1: Budget, 2: Standard, 3: Premium)
+  const selectedPrices = Object.keys(filters.price)
+    .filter((key) => filters.price[key])
+    .map((key) => parseInt(key));
 
-    if (selectedPrices.length > 0 && selectedPrices.length < 3) {
-      filtered = filtered.filter(
-        (place) =>
-          place.type === "Restaurant" || selectedPrices.includes(place.price),
-      );
-    }
+  if (selectedPrices.length > 0 && selectedPrices.length < 3) {
+    filtered = filtered.filter((place) => {
+      // Only filter by price if it matches, regardless of type
+      return selectedPrices.includes(place.price);
+    });
   }
 
   switch (filters.sort) {

@@ -13,7 +13,7 @@ from shapely.geometry import Point
 from datetime import timedelta, datetime
 from typing import List, Optional, Dict, Any
 import os
-import google.generativeai as genai
+from google import genai
 from ml_forecasting import get_crowd_forecast
 
 import models
@@ -614,9 +614,12 @@ def summarize_reviews(place_id: int, db: Session = Depends(get_db)):
         return {"summary": "No text reviews available to summarize."}
         
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        client = genai.Client()
         prompt = f"Summarize the following reviews for {place.name} into exactly 3 short, punchy bullet points. Focus on the consensus, ignore fake-sounding info:\n\n{reviews_text}"
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
         # Parse it if it returned JSON somehow, or just return as is
         return {"summary": response.text.strip()}
     except Exception as e:
@@ -1072,17 +1075,19 @@ Keep your text response short (2-3 sentences max). Let your personality shine!
 """
 
         try:
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                system_instruction=system_instructions
-            )
-            chat = model.start_chat(history=[])
+            client = genai.Client()
+            prompt = f"SYSTEM PROTOCOL:\n{system_instructions}\n\nCONVERSATION HISTORY:\n"
             for msg in request.history[:-1]:
-                role = "user" if msg.role == "user" else "model"
-                chat.history.append({"role": role, "parts": [msg.content]})
-
+                role_label = "User" if msg.role == "user" else "Assistant"
+                prompt += f"{role_label}: {msg.content}\n"
+            
             latest_msg = request.history[-1].content if request.history else "Hello!"
-            response = chat.send_message(latest_msg)
+            prompt += f"User: {latest_msg}\nAssistant:"
+            
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             reply_text = response.text
         except Exception as e:
             print(f"Google Gemini API failed or hit Rate Limit: {e}")
