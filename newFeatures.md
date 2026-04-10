@@ -39,15 +39,10 @@ This document provides a technical and functional overview of the novel features
 
 - **How to Use:** Open `PlaceDetail` and view the "Sustainability Score" chip near the ratings.
 
-## 6. Predictive Crowd Analysis ("Beat the Crowd")
+## 6. Predictive Crowd Density Forecasting (Time-Series ML)
 
-**The Problem:** Travellers arrive at peak times and ruin their own experience due to overcrowding.
-**The Novel Solution:** Instead of requiring invasive location tracking, the system uses the density distribution of _historical review creation timestamps_ as a statistical proxy for crowd density, warning users before they plan a visit.
+**The Problem:** Travellers arrive at peak times and ruin their own experience due to overcrowding. Current apps only show "live" data which is useless for planning trips days in advance.
+**The Novel Solution:** Odyssey uses true Machine Learning to mathematically extrapolate future foot-traffic scenarios. Using `scikit-learn`'s `RandomForestRegressor`, the backend trains a time-series model on historical data (factoring in day of the week, weekends, and seasonal mathematical waves) to output a 7-day future probability curve.
+**The Academic Value:** Transforms a standard travel planner into an advanced Data Science predictive analytics pipeline.
 
-- **How to Use:** On `PlaceDetail`, view the crowd pulse metric which suggests optimal visiting times.
-
----
-
-### 👉 Supervisor Presentation Tip
-
-When pitching the application, focus heavily on exactly **how the data is verified** (GPS + NLP) and the **audit log capabilities** of collaborative trips. These demonstrate advanced systemic thinking beyond standard CRUD operations!
+- **How to Use:** On `PlaceDetail`, scroll below the Emergency Info. A React Recharts `<LineChart>` dynamically visualizes the backend's JSON tensor output for the next 7 days, indicating accurate % capacity forecasting.

@@ -14,6 +14,7 @@ from datetime import timedelta, datetime
 from typing import List, Optional, Dict, Any
 import os
 import google.generativeai as genai
+from ml_forecasting import get_crowd_forecast
 
 import models
 import database
@@ -1138,6 +1139,20 @@ Keep your text response short (2-3 sentences max). Let your personality shine!
             "reply": "I'm having a little trouble connecting right now. What kind of place are you looking for?",
             "places": []
         }
+@app.get("/api/places/{place_id}/forecast")
+def get_place_forecast(place_id: int, db: Session = Depends(get_db)):
+    """Academic Feature: Time-Series Crowd Forecasting via scikit-learn."""
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    try:
+        from ml_forecasting import get_crowd_forecast
+        forecast_data = get_crowd_forecast(place_id)
+        return {"forecast": forecast_data}
+    except Exception as e:
+        print(f"ML Forecast Error: {e}")
+        raise HTTPException(status_code=500, detail="Internal ML Forecasting API Error")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import AIAssistant from "../components/AIAssistant";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -71,34 +72,58 @@ function PlaceDetail() {
   const [addedToTrip, setAddedToTrip] = useState(false);
   const [showTripPanel, setShowTripPanel] = useState(false);
 
+  // ML Forecasting State
+  const [forecast, setForecast] = useState(null);
+  const [loadingForecast, setLoadingForecast] = useState(false);
+
   // New features
   const [isDictating, setIsDictating] = useState(false);
 
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/places/${id}`)
-      .then(res => { if (!res.ok) throw new Error("Place not found"); return res.json(); })
-      .then(data => { setPlace(data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [id]);
+    const fetchPlace = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/places/${id}`);
+        if (!res.ok) throw new Error("Place not found");
+        const data = await res.json();
+        setPlace(data);
+        setLoading(false);
+      } catch (e) { setLoading(false); }
+    };
 
-  useEffect(() => {
-    if (!loading && place) fetchReviews();
-  }, [loading, place]);
+    const fetchReviews = async () => {
+      setLoadingReviews(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/places/${id}/reviews`);
+        if (res.ok) setReviews(await res.json());
+      } catch (e) { console.error(e); }
+      setLoadingReviews(false);
+    };
+
+    const fetchForecast = async () => {
+      setLoadingForecast(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/places/${id}/forecast`);
+        if (res.ok) {
+          const data = await res.json();
+          setForecast(data.forecast);
+        }
+      } catch (err) {
+        console.error("Forecast error:", err);
+      } finally {
+        setLoadingForecast(false);
+      }
+    };
+
+    fetchPlace();
+    fetchReviews();
+    fetchForecast();
+  }, [id]);
 
   useEffect(() => {
     if (token) fetchUserTrips();
   }, [token]);
-
-  const fetchReviews = async () => {
-    setLoadingReviews(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/places/${id}/reviews`);
-      if (res.ok) setReviews(await res.json());
-    } catch (e) { console.error(e); }
-    setLoadingReviews(false);
-  };
 
   const handleSummarizeReviews = async () => {
     setLoadingSummary(true);
@@ -343,6 +368,57 @@ function PlaceDetail() {
               <div>🏥 {hospital}</div>
               <div>🚓 {policeStation}</div>
             </div>
+          </div>
+
+          {/* ML Crowd Forecast */}
+          <div className="mb-6 p-6 rounded-3xl bg-white dark:bg-gray-800 shadow-lg border border-gray-100 dark:border-gray-700 animate-fade-in-up">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2">
+              📊 Predictive Crowd Density
+              <span className="bg-primary/20 text-primary text-[10px] uppercase font-black px-2 py-0.5 rounded shadow-sm tracking-wider">AI Forecast</span>
+            </h3>
+            <p className="text-xs text-gray-500 mb-6">Powered by Scikit-Learn Random Forest Time-Series Regression</p>
+            
+            {loadingForecast ? (
+              <div className="h-48 flex items-center justify-center animate-pulse bg-gray-50 dark:bg-gray-900 rounded-xl">
+                 <span className="text-gray-400 font-medium">Computing ML extrapolation...</span>
+              </div>
+            ) : forecast && forecast.length > 0 ? (
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={forecast} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorDensity" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} vertical={false} />
+                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} tickFormatter={(val) => `${val}%`} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: '1px solid #E5E7EB', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value) => [`${value}% Capacity`, 'Predicted Crowd']}
+                      labelStyle={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}
+                      cursor={{ stroke: '#8B5CF6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="predicted_density" 
+                      stroke="#8B5CF6" 
+                      strokeWidth={3} 
+                      fillOpacity={1} 
+                      fill="url(#colorDensity)"
+                      activeDot={{ r: 6, strokeWidth: 2, stroke: '#FFFFFF', fill: '#8B5CF6' }} 
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+               <div className="h-48 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-xl">
+                 <span className="text-red-400 font-medium text-sm">Forecast unavailable</span>
+              </div>
+            )}
           </div>
 
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed max-w-3xl mb-8 text-base">
